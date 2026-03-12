@@ -24,7 +24,6 @@ knitr::include_graphics(system.file("extdata", "Cherry_tomato.png", package = "s
 
 
 # Overview
-
 This tutorial demonstrates a minimal spatial metabolomics workflow using the
 cherry_tomato_msi example dataset included in spatMetaCluster.
 
@@ -57,26 +56,17 @@ library(ggplot2)
 library(spatMetaCluster)
 
 data(cherry_tomato_msi)
-
-demo_msi2 <- cherry_tomato_msi |>
-	normalize(method="tic") |>
-    peakPick(method="diff") |>
-	peakProcess(SNR=2, 
-	            # sampleSize=0.1,
-	            tolerance=0.5, 
-	            units="mz")
-demo_msi2
-
+tomato <- cherry_tomato_msi
+tomato
 ```
 
 The example dataset contains 20 m/z features and 43,253 spectra. It is
 intentionally lightweight so that examples remain fast and reproducible.
 
 # Inspect the dataset structure
-
 We first inspect the overall structure of the MSI object.
 ```{r MSI-data,echo=TRUE}
-demo_msi2
+tomato
 ```
 
 This object is a centroided MSImagingExperiment with:
@@ -94,10 +84,10 @@ A useful first step is to examine the spectrum from one pixel. Below we plot
 the spectrum for pixel index 1020 and annotate several peaks.
 
 ```{r MSI-mean,echo=TRUE,fig.height=6,fig.width=12}
-demo_msi2 <- summarizeFeatures(demo_msi2, c(Mean="mean"))
+tomato <- summarizeFeatures(tomato, c(Mean="mean"))
 
 Cardinal::plot(
-  demo_msi2,
+  tomato,
   #i = 1020,
   isPeaks = TRUE,
   annPeaks = 6,
@@ -114,13 +104,13 @@ should be interpreted only as a visualization example.
 We can display ion images for all available m/z features.
 
 ```{r MSI-TIC,echo=TRUE,fig.height=6,fig.width=8}
-demo_msi2 <- summarizePixels(demo_msi2, c(TIC="sum"))
+tomato <- summarizePixels(tomato, c(TIC="sum"))
 
-Cardinal::image(demo_msi2, "TIC")
+Cardinal::image(tomato, "TIC")
 
 image(
-  demo_msi2,
-  mz = featureData(demo_msi2)$mz,
+  tomato,
+  mz = featureData(tomato)$mz,
   smooth = "gaussian",
   enhance = "hist",
   scale = TRUE,
@@ -139,15 +129,14 @@ Principal component analysis (PCA) provides a low-dimensional summary of the
 spectral variation across pixels.
 
 ```{r PCA,echo=TRUE}
-demo_msi2_pca <- Cardinal::PCA(demo_msi2, ncomp = 4)
-demo_msi2_pca
+tomato_pca <- Cardinal::PCA(tomato, ncomp = 4)
+tomato_pca
 ```
 
 We can visualize the PCA components as spatial images.
-
 ```{r PCA-plot,echo=TRUE,fig.height=4,fig.width=6}
 image(
-  demo_msi2_pca,
+  tomato_pca,
   smooth = "adaptive",
   enhance = "histogram"
 )
@@ -163,15 +152,14 @@ Non-negative matrix factorization (NMF) is another commonly used decomposition
 method for MSI data.
 
 ```{r NMF,echo=TRUE}
-demo_msi2_nmf <- Cardinal::NMF(demo_msi2, ncomp = 4, niter = 30)
-demo_msi2_nmf
+tomato_nmf <- Cardinal::NMF(tomato, ncomp = 4, niter = 30)
+tomato_nmf
 ```
 
 We again visualize the resulting components.
-
 ```{r NMF-plot,echo=TRUE,fig.height=4,fig.width=6}
 image(
-  demo_msi2_nmf,
+  tomato_nmf,
   smooth = "adaptive",
   enhance = "histogram"
 )
@@ -187,21 +175,20 @@ clustering of MSI data.
 
 ```{r spatialShrunkenCentroids,echo=TRUE}
 set.seed(2026)
-demo_msi2_ssc <- Cardinal::spatialShrunkenCentroids(
-  demo_msi2,
+tomato_ssc <- Cardinal::spatialShrunkenCentroids(
+  tomato,
   weights = "adaptive",
   r = 2,
   k = 4,
   s = 2
 )
 
-demo_msi2_ssc
+tomato_ssc
 ```
 
 We can display the resulting segmentation map.
-
 ```{r spatialShrunkenCentroids-plot,echo=TRUE,fig.height=4,fig.width=6}
-image(demo_msi2_ssc, i = 1)
+image(tomato_ssc, i = 1)
 ```
 
 This gives a spatially smoothed cluster assignment across the tissue region.
@@ -218,7 +205,7 @@ The Python backend was tested with a conda environment containing Python 3.9, `n
 
 ```{r spatMetaCluster,echo=TRUE}
 res <- spatMetaCluster::spatial_kmeans_workflow(
-  msi_obj = demo_msi2,
+  msi_obj = tomato,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
   centers = 4,
   metric = "cosine",
@@ -231,7 +218,6 @@ head(res$cluster_df)
 ```
 
 In this example, the workflow uses:
-
 centers = 4 clusters
 cosine distance
 UMAP neighborhood size of 25
@@ -239,7 +225,6 @@ min_dist = 0.3
 a 2-dimensional embedding
 
 # Plot the clustering result
-
 The output cluster assignments can be visualized using ggplot2.
 
 ```{r spatMetaCluster-plot,echo=TRUE,fig.height=4,fig.width=6}
@@ -257,12 +242,10 @@ ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
     )
   )
 ```
-
 This plot provides a simple spatial view of the cluster labels produced by the
 workflow.
 
 # Notes on interpretation
-
 The cherry_tomato_msi dataset is intentionally lightweight and simplified. It
 is designed to make package examples fast, stable, and easy to understand.
 
@@ -276,7 +259,6 @@ inference or method benchmarking.
 
 
 # Summary
-
 Using cherry_tomato_msi, we demonstrated how to:
 
 1.load an example MSImagingExperiment
@@ -289,7 +271,6 @@ This toy dataset provides a compact and reproducible way to explore the core fun
 
 
 # Acknowledgement
-
 This package is designed to work with `Cardinal` MSI objects, and some
 demonstration steps in this vignette follow a workflow style similar to the
 Cardinal tutorials. The included `cherry_tomato_msi` dataset is a manually
