@@ -22,13 +22,16 @@ run_umap_py(
 \item{python_path}{Optional character string specifying the Python executable.
 If \code{NULL}, the current \pkg{reticulate} Python configuration will be used.}
 
-\item{metric}{Distance metric used by UMAP. Default is \code{"cosine"}.}
+\item{metric}{Distance metric used by UMAP. Must be one of
+\code{"cosine"} or \code{"euclidean"}. Default is \code{"cosine"}.}
 
 \item{n_neighbors}{Integer; number of neighbors used by UMAP. Default is \code{10L}.}
 
 \item{min_dist}{Numeric; UMAP \code{min_dist} parameter. Default is \code{0.05}.}
 
-\item{n_components}{Integer; number of embedding dimensions. Default is \code{2L}.}
+\item{n_components}{Integer; number of embedding dimensions. Default is \code{2L}.
+Any positive integer is allowed, but \code{2} or \code{3} is recommended
+for most visualization and exploratory analysis tasks.}
 
 \item{random_state}{Integer; random seed for UMAP. Default is \code{2025L}.}
 
@@ -53,8 +56,12 @@ versions may also work.
 \examples{
 \dontrun{
 mat <- matrix(runif(100), nrow = 10)
-emb <- run_umap_py(mat, python_path = "/path/to/python")
-head(emb)
+emb2 <- run_umap_py(mat, python_path = "/path/to/python", n_components = 2)
+head(emb2)
+
+emb3 <- run_umap_py(mat, python_path = "/path/to/python",
+                    metric = "euclidean", n_components = 3)
+head(emb3)
 }
 
 }

@@ -204,7 +204,7 @@ The Python backend was tested with a conda environment containing Python 3.9, `n
 
 
 ```{r spatMetaCluster,echo=TRUE}
-res <- spatMetaCluster::spatial_kmeans_workflow(
+res <- spatMetaCluster::spatial_clustering_workflow(
   msi_obj = tomato,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
   centers = 4,
@@ -230,7 +230,7 @@ The output cluster assignments can be visualized using ggplot2.
 ```{r spatMetaCluster-plot,echo=TRUE,fig.height=4,fig.width=6}
 cluster_df <- res$cluster_df
 
-ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
+ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
   geom_point(size = 0.1) +
   scale_y_reverse() +
   coord_fixed() +

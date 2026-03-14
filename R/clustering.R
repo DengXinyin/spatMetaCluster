@@ -1,41 +1,74 @@
-#' Run k-means clustering on embedding coordinates
+#' Run clustering on embedding coordinates
 #'
-#' This function performs k-means clustering on low-dimensional embedding
-#' coordinates, such as UMAP results.
+#' This function performs clustering on low-dimensional embedding coordinates,
+#' such as UMAP results. Currently, only \code{"kmeans"} clustering is supported,
+#' but additional methods may be added in future versions.
 #'
 #' @param embedding A data.frame or matrix containing embedding coordinates.
 #' Typically the output of \code{run_umap_py()}.
-#' @param centers Integer; number of clusters.
-#' @param seed Integer; random seed for k-means. Default is \code{2024}.
+#' @param method Character string specifying the clustering method.
+#' Currently only \code{"kmeans"} is supported.
+#' @param centers Integer; number of clusters. Used when \code{method = "kmeans"}.
+#' Default is \code{10L}.
 #'
-#' @return A list with two elements:
+#' @return A list containing clustering results. For \code{method = "kmeans"},
+#' the returned list includes:
 #' \describe{
-#'   \item{kmeans}{The raw \code{stats::kmeans()} result object.}
+#'   \item{method}{The clustering method used.}
+#'   \item{result}{The raw \code{stats::kmeans()} result object.}
 #'   \item{cluster}{A factor vector of cluster assignments.}
 #' }
 #'
+#' @details
+#' For \code{method = "kmeans"}, clustering is performed on all columns of the
+#' embedding coordinates, and the random seed is fixed internally at
+#' \code{2026} for reproducibility.
+#'
 #' @examples
 #' emb <- data.frame(UMAP1 = rnorm(20), UMAP2 = rnorm(20))
-#' res <- run_kmeans_cluster(emb, centers = 3)
+#' res <- run_clustering(emb, method = "kmeans", centers = 3)
 #' table(res$cluster)
 #'
 #' @export
-run_kmeans_cluster <- function(embedding, centers = 10, seed = 2024) {
+run_clustering <- function(
+    embedding,
+    method = "kmeans",
+    centers = 10L
+) {
   if (!is.data.frame(embedding) && !is.matrix(embedding)) {
-    stop("Embedding must be a data.frame or matrix.")
+    stop("'embedding' must be a data.frame or matrix.")
   }
 
   if (ncol(embedding) < 2) {
-    stop("Embedding must contain at least 2 columns.")
+    stop("'embedding' must contain at least 2 columns.")
   }
 
-  set.seed(seed)
-  km <- stats::kmeans(embedding[, 1:2, drop = FALSE], centers = centers)
+  method <- match.arg(method, choices = c("kmeans"))
 
-  list(
-    kmeans = km,
-    cluster = as.factor(km$cluster)
-  )
+  if (!is.numeric(centers) || length(centers) != 1 || is.na(centers)) {
+    stop("'centers' must be a single positive integer.")
+  }
+  centers <- as.integer(centers)
+  if (centers < 1L) {
+    stop("'centers' must be a positive integer.")
+  }
+
+  embedding_mat <- as.matrix(embedding)
+
+  if (!is.numeric(embedding_mat)) {
+    stop("'embedding' must contain only numeric values.")
+  }
+
+  if (method == "kmeans") {
+    set.seed(2026)
+    km <- stats::kmeans(embedding_mat, centers = centers)
+
+    return(list(
+      method = method,
+      result = km,
+      cluster = as.factor(km$cluster)
+    ))
+  }
 }
 
 
@@ -76,7 +109,7 @@ build_cluster_dataframe <- function(embedding, cluster, pixel_info) {
   out <- data.frame(
     UMAP1 = embedding[[1]],
     UMAP2 = embedding[[2]],
-    kmeans_cluster = cluster,
+    cluster = cluster,
     run = if ("run" %in% colnames(pixel_info)) pixel_info$run else NA,
     x = if ("x" %in% colnames(pixel_info)) pixel_info$x else NA,
     y = if ("y" %in% colnames(pixel_info)) pixel_info$y else NA,
@@ -110,7 +143,7 @@ attach_cluster_to_pixeldata <- function(msi_obj, cluster_df) {
     cluster_df <- as.data.frame(cluster_df)
   }
 
-  required_cols <- c("pixel_ID", "UMAP1", "UMAP2", "kmeans_cluster")
+  required_cols <- c("pixel_ID", "UMAP1", "UMAP2", "cluster")
   missing_cols <- setdiff(required_cols, colnames(cluster_df))
   if (length(missing_cols) > 0) {
     stop(
@@ -154,7 +187,7 @@ attach_cluster_to_pixeldata <- function(msi_obj, cluster_df) {
 
   Cardinal::pixelData(msi_obj)$UMAP1 <- cluster_df2$UMAP1
   Cardinal::pixelData(msi_obj)$UMAP2 <- cluster_df2$UMAP2
-  Cardinal::pixelData(msi_obj)$kmeans_cluster <- cluster_df2$kmeans_cluster
+  Cardinal::pixelData(msi_obj)$cluster <- cluster_df2$cluster
 
   msi_obj
 }

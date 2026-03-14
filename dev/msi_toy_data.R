@@ -310,7 +310,7 @@ image(demo_msi2_ssc, i=1:1)
 
 
 devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
-res <- spatial_kmeans_workflow(
+res <- spatial_clustering_workflow(
   msi_obj = demo_msi2,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
   centers = 4,

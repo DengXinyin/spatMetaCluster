@@ -107,7 +107,7 @@ cherry_tomato_msi <- cherry_tomato_msi |>
   Cardinal::peakPick(SNR = 2) |>
   Cardinal::peakAlign()
   
-res <- spatial_kmeans_workflow(
+res <- spatial_clustering_workflow(
   msi_obj = cherry_tomato_msi,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
   centers = 4,
@@ -116,6 +116,7 @@ res <- spatial_kmeans_workflow(
 )
 
 cluster_df <- res$cluster_df
+cluster_df$kmeans_cluster <- cluster_df$cluster
 
 ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
   geom_point(size = 1) +
@@ -145,10 +146,10 @@ options.
 
 - `extract_spectra_matrix()` – extract spectra and pixel metadata from a Cardinal MSI object
 - `remove_constant_features()` – remove zero-variance features
-- `minmax_normalize()` – scale features to [0, 1]
+- `apply_feature_scaling` – scale features
 - `run_umap_py()` – run Python UMAP via `reticulate`
-- `run_kmeans_cluster()` – cluster embedding coordinates with k-means
-- `spatial_kmeans_workflow()` – complete end-to-end workflow
+- `run_clustering()` – cluster embedding coordinates, e.g. k-means
+- `spatial_clustering_workflow` – complete end-to-end workflow
 
 ## Relationship to Cardinal
 
