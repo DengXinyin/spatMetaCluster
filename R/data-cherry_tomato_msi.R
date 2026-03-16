@@ -13,15 +13,15 @@
 #' dataset is intended exclusively for examples, tutorials, testing, and package
 #' demonstrations.
 #'
-#' @format An object of class `MSImagingExperiment` with 20 features and 43,253
+#' @format An object of class `MSImagingExperiment` with 32 features and 43,253
 #' spectra.
 #'
 #' \describe{
 #'   \item{spectraData}{One intensity assay.}
 #'   \item{featureData}{Feature metadata including `mz`, `count`, and `freq`.}
 #'   \item{pixelData}{Pixel metadata including spatial coordinates (`x`, `y`),
-#'   run information, RGB channels (`R`, `G`, `B`), and `pixel_ID`.}
-#'   \item{mass range}{From 141.1193 to 457.5927.}
+#'   run information, cluster information(`Fruit`, `Calyx`), and `pixel_ID`.}
+#'   \item{mass range}{From 140.3475 to 259.6539.}
 #'   \item{centroided}{`TRUE`.}
 #' }
 #'

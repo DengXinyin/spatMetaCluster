@@ -22,7 +22,7 @@ library(jpeg)
 # img <- readJPEG("/home/hsinyinteng/spatMetaCluster/tests/DSC00349.jpg")
 
 library(png)
-img <- readPNG("/home/hsinyinteng/spatMetaCluster/tests/Cherry_tomato.png")
+img <- readPNG("~/spatMetaCluster/inst/extdata/Cherry_tomato.png")
 
 
 # 像素降采样
@@ -89,6 +89,12 @@ p1 <- ggplot(pixel_df, aes(x = x, y = y, fill = cluster)) +
 
 print(p1)
 
+
+table(pixel_df$cluster)
+# 红色的果肉部分： Fruit flesh。
+# 绿色的萼片： Calyx 或 Sepals。
+pixel_df$ROI <- factor(ifelse(pixel_df$cluster == 3, "Calyx", "Fruit"))
+pixel_df$cluster <- pixel_df$ROI
 
 # 生成 spectra ----------
 generate_spectra_from_clusters <- function(
@@ -213,7 +219,7 @@ generate_spectra_from_clusters <- function(
 
 sim_res <- generate_spectra_from_clusters(
   pixel_df = pixel_df,
-  n_features = 1000,
+  n_features = 3000,
   seed = 2025,
   mz_min = 100,
   mz_max = 1000,
@@ -255,14 +261,58 @@ make_demo_msi <- function(pixel_df, spectra, mz, run_name = "MSI_demo") {
 demo_msi <- make_demo_msi(pixel_df, spectra, mz, "cherry_tomato")
 demo_msi
 
-demo_msi2 <- demo_msi |> peakPick(SNR = 2) |> peakAlign()
+demo_msi1 <- demo_msi |> peakPick(SNR = 2) |> peakAlign()
+demo_msi1
+image(demo_msi1,
+      mz=featureData(demo_msi1)$mz[1:50],
+      smooth="gaussian",
+      enhance="hist",
+      scale=T,
+      key=F)
 
-demo_msi2 <- subsetFeatures(demo_msi2,
-                            mz > 141 & mz < 160 |
-                              mz > 240 & mz < 260 |
-                              mz > 343 & mz < 358 |
-                              mz > 443 & mz < 458)
+
+demo_msi2 <- subsetFeatures(demo_msi1,
+                            mz > 140 & mz < 160 |
+                            mz > 199 & mz < 231 |
+                            mz > 238 & mz < 260)
 demo_msi2
+
+image(demo_msi2,
+      mz=featureData(demo_msi2)$mz,
+      smooth="gaussian",
+      enhance="hist",
+      scale=T,
+      key=F)
+
+
+pixelData(demo_msi2)$R <- NULL
+pixelData(demo_msi2)$G <- NULL
+pixelData(demo_msi2)$B <- NULL
+head(pixelData(demo_msi2))
+
+image(demo_msi2, "cluster")
+
+cherry_tomato_msi <- demo_msi2
+# 文件存放在 data/cherry_tomato_msi.rda，用户可使用data(demo_msi)进行调用
+usethis::use_data(cherry_tomato_msi, overwrite = TRUE)
+# 别忘了重新生成文档
+# 如果你用了 roxygen2：
+devtools::document()
+# 检查帮助文件：
+?cherry_tomato_msi
+# 加载数据测试：
+data(cherry_tomato_msi)
+cherry_tomato_msi
+
+
+# # 保存结果至mouse_14_ovary_pixel_merged_1236_features.imzML文件夹，包括log文件, metadata文件, pdata文件，imzML文件和ibd文件
+# imzfile <- file.path("/home/hsinyinteng/Spatial_Metabolomics/mouse_ovary/continuous_result_20241113/", "mouse_14_ovary_pixel_merged_1236_features.imzML")
+# writeMSIData(demo_msi2, file = imzfile)
+#
+# list.files(imzfile)
+# file.exists(imzfile)  # 返回 TRUE 表示文件生成成功
+# file.size(imzfile) > 0  # 返回 TRUE 表示文件非空
+
 
 # cherry_tomato ---------
 devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
@@ -322,8 +372,11 @@ res <- spatial_clustering_workflow(
 head(res$cluster_df)
 
 cluster_df <- res$cluster_df
+cluster_df$kmeans_cluster <- cluster_df$cluster
 # umap_df <- res$umap_df
-# duck_msi3 <- res$msi_obj
+tomato <- res$msi_obj
+
+library(ggplot2)
 ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
   geom_point(size = 0.1) +
   scale_y_reverse() +
@@ -357,25 +410,9 @@ ggplot(pixel_df, aes(x = x, y = y, fill = cluster)) +
 
 
 
-
-cherry_tomato_msi <- demo_msi2
-# 文件存放在 data/cherry_tomato_msi.rda，用户可使用data(demo_msi)进行调用
-usethis::use_data(cherry_tomato_msi, overwrite = TRUE)
-# 别忘了重新生成文档
-# 如果你用了 roxygen2：
-devtools::document()
-# 检查帮助文件：
-?cherry_tomato_msi
-# 加载数据测试：
-data(cherry_tomato_msi)
-cherry_tomato_msi
+table(pixelData(tomato)$cluster)
+pixelData(tomato)$ROI <- ifelse(pixelData(tomato)$cluster == 2, "Calyx", "Fruit")
+image(tomato, "ROI")
 
 
-# 保存结果至mouse_14_ovary_pixel_merged_1236_features.imzML文件夹，包括log文件, metadata文件, pdata文件，imzML文件和ibd文件
-imzfile <- file.path("/home/hsinyinteng/Spatial_Metabolomics/mouse_ovary/continuous_result_20241113/", "mouse_14_ovary_pixel_merged_1236_features.imzML")
-writeMSIData(demo_msi2, file = imzfile)
-
-list.files(imzfile)
-file.exists(imzfile)  # 返回 TRUE 表示文件生成成功
-file.size(imzfile) > 0  # 返回 TRUE 表示文件非空
 

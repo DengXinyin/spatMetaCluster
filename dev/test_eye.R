@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+# 分步工作流 -----------
+
+>>>>>>> 65a40c8 (Modify vignettes)
 # 从当前 R 环境中移除（卸载）已经加载的包
 detach("package:spatMetaCluster", unload = TRUE, character.only = TRUE)
 
@@ -6,6 +11,7 @@ rm(list = ls())
 library(devtools)
 # 加载你正在开发的本地 R 包源码，并模拟包安装后的状态
 devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
+
 
 library(Cardinal)
 Eye <- readImzML("/home/hsinyinteng/Spatial_Metabolomics/fish_eye/01_root_mean_square.imzML")
@@ -139,7 +145,7 @@ colnames(Cardinal::pixelData(Eye2))
 head(as.data.frame(Cardinal::pixelData(Eye2))$pixel_ID)
 
 
-# 10. 一键工作流
+# 一键工作流 --------------------
 devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
 
 library(Cardinal)
@@ -170,6 +176,95 @@ ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
 ggplot(cluster_df, aes(UMAP1, UMAP2, color = factor(kmeans_cluster))) +
   geom_point(size = 0.2) +
   theme_classic()
+<<<<<<< HEAD
+=======
 
 image(Eye)
+>>>>>>> 65a40c8 (Modify vignettes)
+
+image(Eye)
+
+# Spatially Enriched Metabolites(SEMs) screen ---------
+devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
+
+library(Cardinal)
+data(cherry_tomato_msi)
+tomato <- cherry_tomato_msi
+tomato
+
+res <- SEMs_screen(
+  msi_obj = tomato,
+  group_col = "cluster",
+  t_statistic_threshold = 20,
+  cor_threshold = 0.5,
+  M1_threshold = 0.5,
+  M2_threshold = 0.5,
+  save_table = TRUE,
+  file_name = "Spatially_Enriched_Metabolites",
+  file_format = "xlsx"
+)
+
+dim(res$results_df)
+dim(res$SEMs_df)
+
+image(tomato,
+      mz=sort(res$SEMs_df$mz),
+      smooth="gaussian",
+      enhance="hist",
+      scale=T,
+      key=F)
+
+# SEMs 重构 -----------
+tomato_SEMs_only <- subsetFeatures(tomato,
+                                   mz %in% sort(res$SEMs_df$mz))
+
+res <- spatial_clustering_workflow(
+  msi_obj = tomato_SEMs_only,
+  python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
+  centers = 2
+)
+cluster_df <- res$cluster_df
+
+library(ggplot2)
+ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
+  geom_point(size = 0.1) +
+  scale_y_reverse() +
+  coord_fixed() +
+  theme_void()
+
+# image overlay -------
+devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
+
+library(Cardinal)
+data(cherry_tomato_msi)
+tomato <- cherry_tomato_msi
+tomato
+image(tomato, mz=featureData(tomato)$mz)
+tomato <- summarizePixels(tomato, c(TIC="sum"))
+
+fruit <- subsetPixels(tomato, pixelData(tomato)$cluster == "Fruit")
+fruit
+
+msi_img_overlay(
+  msi_data01 = tomato,
+  value01 = "TIC",
+  color01 = colorRampPalette(c("white", "grey"))(100),
+  msi_data02 = fruit,
+  value02 = 240.8123,
+  color02 = colorRampPalette(c("black", "blue", "cyan", "yellow", "red"))(100),
+  show_axes = FALSE
+  )
+
+msi_img_overlay(
+  msi_data01 = tomato,
+  value01 = "TIC",
+  color01 = colorRampPalette(c("white", "grey"))(100),
+  msi_data02 = fruit,
+  value02 = "cluster",
+  color02 = c(
+    Calyx = "#E64B35",
+    Fruit = "#3C5488"
+  ),
+  show_axes = FALSE
+)
 

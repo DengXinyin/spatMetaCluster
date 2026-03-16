@@ -5,15 +5,15 @@
 \alias{cherry_tomato_msi}
 \title{Cherry tomato MSI example data}
 \format{
-An object of class \code{MSImagingExperiment} with 20 features and 43,253
+An object of class \code{MSImagingExperiment} with 32 features and 43,253
 spectra.
 
 \describe{
 \item{spectraData}{One intensity assay.}
 \item{featureData}{Feature metadata including \code{mz}, \code{count}, and \code{freq}.}
 \item{pixelData}{Pixel metadata including spatial coordinates (\code{x}, \code{y}),
-run information, RGB channels (\code{R}, \code{G}, \code{B}), and \code{pixel_ID}.}
-\item{mass range}{From 141.1193 to 457.5927.}
+run information, cluster information(\code{Fruit}, \code{Calyx}), and \code{pixel_ID}.}
+\item{mass range}{From 140.3475 to 259.6539.}
 \item{centroided}{\code{TRUE}.}
 }
 }
