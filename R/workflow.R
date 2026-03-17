@@ -5,9 +5,9 @@
 #' \enumerate{
 #'   \item Extract spectra matrix and pixel metadata from a Cardinal MSI object
 #'   \item Remove constant features
-#'   \item Apply min-max normalization
+#'   \item Apply feature scaling using min-max normalization
 #'   \item Run Python UMAP through \pkg{reticulate}
-#'   \item Perform k-means clustering on UMAP coordinates
+#'   \item Perform clustering on UMAP coordinates
 #'   \item Build a clustering result table
 #'   \item Write cluster labels back into \code{pixelData(msi_obj)}
 #' }
@@ -18,59 +18,118 @@
 #' @param msi_obj A Cardinal MSI object.
 #' @param python_path Optional character string specifying the Python executable.
 #' If \code{NULL}, the current \pkg{reticulate} Python configuration will be used.
-#' @param centers Integer; number of k-means clusters. Default is \code{10}.
-#' @param metric Character; UMAP distance metric. Default is \code{"cosine"}.
+#' @param clustering_method Character string specifying the clustering method.
+#' Supported options are \code{"kmeans"}, \code{"gmm"}, \code{"fcm"},
+#' \code{"dbscan"}, and \code{"hclust"}. Default is \code{"kmeans"}.
+#' @param centers Integer; number of clusters when
+#' \code{clustering_method = "kmeans"}, \code{"gmm"}, \code{"fcm"},
+#' or \code{"hclust"}. Default is \code{10L}.
+#' @param eps Numeric; neighborhood radius used when
+#' \code{clustering_method = "dbscan"}. Must be provided for DBSCAN.
+#' Default is \code{NULL}.
+#' @param minPts Integer; minimum number of points required to form a dense
+#' region when \code{clustering_method = "dbscan"}. Default is \code{5L}.
+#' @param hclust_method Character string specifying the agglomeration method
+#' for hierarchical clustering. Passed to \code{stats::hclust()}.
+#' Default is \code{"ward.D2"}.
+#' @param clustering_seed Integer; random seed for clustering methods with
+#' stochastic behavior, including \code{"kmeans"} and \code{"fcm"}.
+#' Default is \code{2026L}.
+#' @param nstart Integer; number of random sets used by
+#' \code{stats::kmeans()}. Default is \code{10L}.
+#' @param metric Character; UMAP distance metric. Must be one of
+#' \code{"cosine"} or \code{"euclidean"}. Default is \code{"cosine"}.
 #' @param n_neighbors Integer; number of neighbors for UMAP. Default is \code{10L}.
 #' @param min_dist Numeric; UMAP \code{min_dist} parameter. Default is \code{0.05}.
-#' @param n_components Integer; number of UMAP dimensions. Default is \code{2L}.
+#' @param n_components Integer; number of UMAP dimensions. Any positive integer
+#' is allowed, but \code{2} or \code{3} is recommended for most visualization
+#' and exploratory analysis tasks. Default is \code{2L}.
 #' @param umap_seed Integer; random seed for UMAP. Default is \code{2025L}.
-#' @param kmeans_seed Integer; random seed for k-means. Default is \code{2024}.
 #'
 #' @return A list with the following elements:
 #' \describe{
 #'   \item{spectra_filtered}{The spectra matrix after removing constant features.}
-#'   \item{spectra_scaled}{The min-max normalized spectra matrix.}
+#'   \item{spectra_scaled}{The spectra matrix after feature scaling using
+#'   min-max normalization.}
 #'   \item{umap_df}{A data.frame containing UMAP coordinates.}
-#'   \item{kmeans_result}{A list returned by \code{run_kmeans_cluster()},
-#'   containing the raw \code{kmeans} result and cluster assignments.}
-#'   \item{cluster_df}{A data.frame containing embedding, cluster labels, and metadata.}
-#'   \item{msi_obj}{The updated Cardinal MSI object with cluster labels in pixelData.}
+#'   \item{clustering_result}{A list returned by \code{run_clustering()},
+#'   containing the raw clustering result and cluster assignments.}
+#'   \item{cluster_df}{A data.frame containing embedding, cluster labels,
+#'   and metadata.}
+#'   \item{msi_obj}{The updated Cardinal MSI object with cluster labels in
+#'   pixelData.}
 #' }
+#'
+#' @details
+#' Clustering is performed on the UMAP embedding generated from the scaled
+#' spectra matrix.
+#'
+#' Method-specific clustering parameters:
+#' \itemize{
+#'   \item \code{"kmeans"} uses \code{centers}, \code{clustering_seed}, and \code{nstart}.
+#'   \item \code{"gmm"} uses \code{centers}.
+#'   \item \code{"fcm"} uses \code{centers} and \code{clustering_seed}.
+#'   \item \code{"dbscan"} uses \code{eps} and \code{minPts}.
+#'   \item \code{"hclust"} uses \code{centers} and \code{hclust_method}.
+#' }
+#'
+#' For \code{clustering_method = "dbscan"}, cluster label \code{0} indicates
+#' noise points.
 #'
 #' @examples
 #' \dontrun{
 #' library(Cardinal)
 #' msi_obj <- readImzML("example.imzML")
 #'
-#' res <- spatial_kmeans_workflow(
+#' res <- spatial_clustering_workflow(
 #'   msi_obj = msi_obj,
 #'   python_path = "/path/to/python",
-#'   centers = 10
+#'   clustering_method = "kmeans",
+#'   centers = 10L
 #' )
 #'
 #' head(res$umap_df)
-#' table(res$cluster_df$kmeans_cluster)
+#' table(res$cluster_df$cluster)
+#'
+#' res_dbscan <- spatial_clustering_workflow(
+#'   msi_obj = msi_obj,
+#'   python_path = "/path/to/python",
+#'   clustering_method = "dbscan",
+#'   eps = 0.3,
+#'   minPts = 10L
+#' )
 #' }
 #'
 #' @export
-spatial_kmeans_workflow <- function(
+spatial_clustering_workflow <- function(
     msi_obj,
     python_path = NULL,
-    centers = 10,
+    clustering_method = c("kmeans", "gmm", "fcm", "dbscan", "hclust"),
+    centers = 10L,
+    eps = NULL,
+    minPts = 5L,
+    hclust_method = "ward.D2",
+    clustering_seed = 2026L,
+    nstart = 10L,
     metric = "cosine",
     n_neighbors = 10L,
     min_dist = 0.05,
     n_components = 2L,
-    umap_seed = 2025L,
-    kmeans_seed = 2024
+    umap_seed = 2025L
 ) {
+  clustering_method <- match.arg(clustering_method)
+
+  if (clustering_method == "dbscan" && is.null(eps)) {
+    stop("'eps' must be provided when clustering_method = 'dbscan'.")
+  }
+
   extracted <- extract_spectra_matrix(msi_obj)
 
   spectra <- extracted$spectra
   pixel_info <- extracted$pixel_info
 
   spectra <- remove_constant_features(spectra)
-  spectra_scaled <- minmax_normalize(spectra)
+  spectra_scaled <- apply_feature_scaling(spectra, method = "minmax")
 
   umap_df <- run_umap_py(
     x = spectra_scaled,
@@ -82,15 +141,20 @@ spatial_kmeans_workflow <- function(
     random_state = umap_seed
   )
 
-  km_res <- run_kmeans_cluster(
+  clustering_res <- run_clustering(
     embedding = umap_df,
+    method = clustering_method,
     centers = centers,
-    seed = kmeans_seed
+    eps = eps,
+    minPts = minPts,
+    hclust_method = hclust_method,
+    seed = clustering_seed,
+    nstart = nstart
   )
 
   cluster_df <- build_cluster_dataframe(
     embedding = umap_df,
-    cluster = km_res$cluster,
+    cluster = clustering_res$cluster,
     pixel_info = pixel_info
   )
 
@@ -103,10 +167,9 @@ spatial_kmeans_workflow <- function(
     spectra_filtered = spectra,
     spectra_scaled = spectra_scaled,
     umap_df = umap_df,
-    kmeans_result = km_res,
+    clustering_result = clustering_res,
     cluster_df = cluster_df,
     msi_obj = msi_obj_updated
   )
-
 }
 

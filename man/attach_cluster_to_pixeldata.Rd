@@ -9,12 +9,19 @@ attach_cluster_to_pixeldata(msi_obj, cluster_df)
 \arguments{
 \item{msi_obj}{A Cardinal MSI object.}
 
-\item{cluster_df}{A data.frame containing at least:
-\code{pixel_ID}, \code{UMAP1}, \code{UMAP2}, \code{kmeans_cluster}.}
+\item{cluster_df}{A data.frame containing at least the columns
+\code{pixel_ID} and \code{cluster}.}
 }
 \value{
-The input MSI object with updated pixelData.
+The input MSI object with updated cluster labels in
+\code{pixelData(msi_obj)}.
 }
 \description{
-Attach clustering results back to Cardinal pixelData
+This function writes cluster labels from a clustering result table back into
+\code{pixelData(msi_obj)}.
+}
+\details{
+Cluster labels are matched back to \code{msi_obj} using the \code{pixel_ID}
+column. The updated \code{pixelData(msi_obj)} will contain a new column
+named \code{cluster}.
 }

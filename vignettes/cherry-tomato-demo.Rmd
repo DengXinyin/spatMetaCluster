@@ -17,81 +17,65 @@ knitr::opts_chunk$set(
   comment = "#>",
   fig.align = "center"
 )
-
-knitr::include_graphics(system.file("extdata", "Cherry_tomato.png", package = "spatMetaCluster"))
-
 ```
 
 
 # Overview
 This tutorial demonstrates a minimal spatial metabolomics workflow using the
-cherry_tomato_msi example dataset included in spatMetaCluster.
+`cherry_tomato_msi` example dataset included in `ARBO`.
 
-cherry_tomato_msi is a toy MSImagingExperiment object designed for package
-examples and tutorials. It is not a real MSI acquisition dataset. The
-spatial structure and RGB information were generated from a real cherry tomato
-image, while the m/z features were manually defined for demonstration purposes.
-Therefore, the m/z values in this dataset do not carry biological or chemical
-interpretation.
+`cherry_tomato_msi` is a toy `MSImagingExperiment` object designed for package examples and tutorials. It is not a real MSI acquisition dataset. The spatial structure was constructed to resemble a cherry tomato section, and the m/z features were manually defined for demonstration purposes. Therefore, the m/z values in this dataset should not be given biological or chemical interpretation.
 
 Despite its simplified nature, the dataset is useful for illustrating:
 
-MSI object inspection
-spectral visualization
-ion image visualization
-dimension reduction
-spatial clustering
-clustering with spatMetaCluster
+- MSI object inspection
+- spectral visualization
+- ion image visualization
+- dimension reduction
+- spatial clustering
+- clustering with `ARBO`
 
-For reference tutorials on the Cardinal package, please see[Cardinal vignettes](https://github.com/kuwisdelu/CardinalWorkflows/tree/devel/vignettes)
+For reference tutorials on the Cardinal package, please see [Cardinal vignettes](https://github.com/kuwisdelu/CardinalWorkflows/tree/devel/vignettes)
 
-
-![cherry tomato](~/spatMetaCluster/inst/extdata/Cherry_tomato.png)
+```{r tomato-image, echo=FALSE, out.width='60%', fig.cap='Reference image used to construct the cherry_tomato_msi toy dataset.'}
+knitr::include_graphics(system.file("extdata", "Cherry_tomato.png", package = "ARBO"))
+```
 
 
 # Load packages and example data
 ```{r Load-MSI-data,echo=TRUE}
+# if (!require("BiocManager", quietly = TRUE))
+#     install.packages("BiocManager")
+# BiocManager::install("Cardinal")
+
+# install.packages("remotes")
+# remotes::install_github("DengXinyin/ARBO")
+
 library(Cardinal)
 library(ggplot2)
-library(spatMetaCluster)
+library(ARBO)
 
 data(cherry_tomato_msi)
 tomato <- cherry_tomato_msi
 tomato
 ```
 
-The example dataset contains 20 m/z features and 43,253 spectra. It is
-intentionally lightweight so that examples remain fast and reproducible.
+The example dataset contains 20 m/z features and 43,253 spectra. It is intentionally lightweight so that examples remain fast, stable, and reproducible.
 
-# Inspect the dataset structure
-We first inspect the overall structure of the MSI object.
-```{r MSI-data,echo=TRUE}
-tomato
-```
 
-This object is a centroided MSImagingExperiment with:
+## Spectrum visualization
 
-20 features
-43,253 spectra
-spatial coordinates (x, y)
-RGB pixel metadata
-one intensity assay
-The m/z range spans from 141.1193 to 457.5927.
-
-# Visualize a representative spectrum
-
-A useful first step is to examine the spectrum from one pixel. Below we plot
-the spectrum for pixel index 1020 and annotate several peaks.
+A useful first step is to inspect the average spectrum across pixels. Below we
+plot the mean spectrum and annotate several peaks.
 
 ```{r MSI-mean,echo=TRUE,fig.height=6,fig.width=12}
 tomato <- summarizeFeatures(tomato, c(Mean="mean"))
 
 Cardinal::plot(
   tomato,
-  #i = 1020,
   isPeaks = TRUE,
   annPeaks = 6,
-  xlim=c(140,160),
+  xlim=c(240,260),
   "Mean", xlab="m/z", ylab="Intensity"
 )
 ```
@@ -99,7 +83,7 @@ Cardinal::plot(
 Because this is a toy dataset with manually defined m/z values, the peak pattern
 should be interpreted only as a visualization example.
 
-# Visualize ion images
+## Ion images visualization
 
 We can display ion images for all available m/z features.
 
@@ -114,22 +98,20 @@ image(
   smooth = "gaussian",
   enhance = "hist",
   scale = TRUE,
-  key = T
+  key = TRUE
 )
 ```
 
-This panel provides a quick view of spatial intensity variation across the
-cherry tomato tissue. Since the spatial pattern was generated from an image-based
-template, the resulting ion maps are suitable for demonstrating image-style MSI
-visualization workflows.
+This panel provides a quick view of spatial intensity variation across the toy
+cherry tomato section. Because the dataset was constructed for demonstration,
+the resulting ion maps are useful for illustrating MSI image visualization
+workflows, but they should not be interpreted biologically.
 
-# Dimension reduction with PCA
-
-Principal component analysis (PCA) provides a low-dimensional summary of the
-spectral variation across pixels.
-
+# Spatial clustering with unsupervised methods 
+## Principal component analysis (PCA) 
+PCA provides a low-dimensional summary of the spectral variation across pixels.
 ```{r PCA,echo=TRUE}
-tomato_pca <- Cardinal::PCA(tomato, ncomp = 4)
+tomato_pca <- Cardinal::PCA(tomato, ncomp = 2)
 tomato_pca
 ```
 
@@ -146,13 +128,11 @@ PCA is useful for identifying dominant global patterns in the dataset, although
 in this toy example the components mainly reflect the manually constructed
 structure in the data.
 
-# Dimension reduction with NMF
-
-Non-negative matrix factorization (NMF) is another commonly used decomposition
+## Non-negative matrix factorization (NMF) 
+NMF is another commonly used decomposition
 method for MSI data.
-
 ```{r NMF,echo=TRUE}
-tomato_nmf <- Cardinal::NMF(tomato, ncomp = 4, niter = 30)
+tomato_nmf <- Cardinal::NMF(tomato, ncomp = 2, niter = 30)
 tomato_nmf
 ```
 
@@ -168,18 +148,15 @@ image(
 NMF often produces parts-based spatial patterns, which can be easier to interpret
 in imaging data.
 
-# Spatial clustering with spatial shrunken centroids
-
-Cardinal provides the spatialShrunkenCentroids() method for spatially aware
-clustering of MSI data.
-
+## Spatial shrunken centroids (SSC)
+`Cardinal` provides the `spatialShrunkenCentroids()` method for spatially aware segmentation / classification of MSI data.
 ```{r spatialShrunkenCentroids,echo=TRUE}
 set.seed(2026)
 tomato_ssc <- Cardinal::spatialShrunkenCentroids(
   tomato,
   weights = "adaptive",
   r = 2,
-  k = 4,
+  k = 2,
   s = 2
 )
 
@@ -193,44 +170,83 @@ image(tomato_ssc, i = 1)
 
 This gives a spatially smoothed cluster assignment across the tissue region.
 
-# Clustering with spatMetaCluster
+## Clustering with ARBO
 
-Next, we demonstrate the clustering workflow implemented in spatMetaCluster.
+Next, we demonstrate the clustering workflow implemented in `ARBO`.
 
 Because this step depends on an external Python environment, the code is shown
 but not evaluated automatically in the vignette.
 
 The Python backend was tested with a conda environment containing Python 3.9, `numpy` 1.24.4, and `umap-learn` 0.5.7. Other compatible versions may also work when properly configured through `reticulate`.
 
+```{r ARBO-clustering,echo=TRUE}
+# 虚拟环境设置 -------------------
+# conda deactivate 
+# conda deactivate
+# conda create -n dxy_python9 python=3.9 -y
+# conda activate dxy_python9
+# conda install -c conda-forge numpy=1.24.4 umap-learn=0.5.7 -y
+# 
+# python -c "import numpy; print(numpy.__version__)"  
+# python -c "import umap; print(umap.__version__)" 
 
-```{r spatMetaCluster,echo=TRUE}
-res <- spatMetaCluster::spatial_kmeans_workflow(
+res <- ARBO::spatial_clustering_workflow(
   msi_obj = tomato,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
-  centers = 4,
+  clustering_method = "kmeans",
+  centers = 2L,
   metric = "cosine",
-  n_neighbors = 25L,
-  min_dist = 0.3,
+  n_neighbors = 15L,
+  min_dist = 0.1,
   n_components = 2L
-)
+) # 15+0.2,0.4
 
 head(res$cluster_df)
+
+# kmeans
+res <- spatial_clustering_workflow(
+  msi_obj = tomato,
+  clustering_method = "kmeans",
+  centers = 2L
+)
+
+# gmm
+res <- spatial_clustering_workflow(
+  msi_obj = tomato,
+  clustering_method = "gmm",
+  centers = 2L
+)
+
+# fcm
+res <- spatial_clustering_workflow(
+  msi_obj = tomato,
+  clustering_method = "fcm",
+  centers = 2L
+)
+
+# dbscan
+res <- spatial_clustering_workflow(
+  msi_obj = tomato,
+  clustering_method = "dbscan",
+  eps = 0.3,
+  minPts = 2L
+)
+
+# hclust
+# res <- spatial_clustering_workflow(
+#   msi_obj = tomato,
+#   clustering_method = "hclust",
+#   centers = 2L
+# )
 ```
 
-In this example, the workflow uses:
-centers = 4 clusters
-cosine distance
-UMAP neighborhood size of 25
-min_dist = 0.3
-a 2-dimensional embedding
 
-# Plot the clustering result
+### Plot the clustering result
 The output cluster assignments can be visualized using ggplot2.
-
-```{r spatMetaCluster-plot,echo=TRUE,fig.height=4,fig.width=6}
+```{r ARBO-plot,echo=TRUE,fig.height=4,fig.width=6}
 cluster_df <- res$cluster_df
 
-ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
+ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
   geom_point(size = 0.1) +
   scale_y_reverse() +
   coord_fixed() +
@@ -245,30 +261,134 @@ ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
 This plot provides a simple spatial view of the cluster labels produced by the
 workflow.
 
+
+# Screening spatially enriched metabolites (SEMs)
+
+In this example, SEMs refer to metabolites showing strong spatial association
+with the predefined **Calyx** and **Fruit** regions stored in
+`pixelData(tomato)$ROI`.
+
+The screening process uses the existing pixel annotation in
+`pixelData(tomato)$ROI`, which labels pixels as **Calyx** or **Fruit**.
+For each metabolite, `SEMs_screen()` combines statistics from
+`spatialShrunkenCentroids()` and `colocalized()` to evaluate whether the
+feature is spatially enriched in one of these regions. The screening criteria
+include the SSC t-statistic, colocalization correlation (`cor`), and the
+abundance and specificity measures `M1` and `M2`. By applying user-defined
+thresholds to these statistics, the function identifies metabolites with strong
+region-associated spatial patterns.
+
+```{r SEMs-screen,echo=TRUE}
+res <- SEMs_screen(
+  msi_obj = tomato,
+  group_col = "ROI",
+  t_statistic_threshold = 20,
+  cor_threshold = 0.5,
+  M1_threshold = 0.5,
+  M2_threshold = 0.5,
+  save_table = FALSE,
+  file_name = "Spatially_Enriched_Metabolites",
+  file_format = "xlsx"
+)
+
+dim(res$results_df)
+dim(res$SEMs_df)
+
+image(tomato,
+      mz=sort(res$SEMs_df$mz),
+      smooth="gaussian",
+      enhance="hist",
+      scale=TRUE,
+      key=FALSE)
+
+```
+As a result of the screening process, 21 out of the original 32 features were selected as SEMs. Based on their spatial distribution patterns, 13 of these features were predominantly localized to the Calyx, while the remaining 8 features were associated with the Fruit region.
+
+It is important to note that these statistical results were obtained under idealized conditions, as the **cherry_tomato_msi** dataset was manually generated. When applying this screening approach to real-world MSI data, the corresponding thresholds may need to be adjusted to account for biological variability and technical noise inherent in experimental datasets.
+
+
+# Spatially enriched metabolites are sufficient to reconstruct MSI spatial architecture
+
+We next asked whether the spatial structure of the dataset could be recovered without using the full set of detected ions. To address this, spatial clustering was performed using only spatially enriched metabolites (SEMs). The resulting clustering pattern still recapitulated the main spatial organization of the toy MSI dataset, indicating that SEMs retain the dominant spatially informative variation. This illustrates that a reduced set of region-associated features can serve as a compact proxy for the full MSI feature space. In practice, such feature reduction can improve interpretability and reduce noise from less informative ions.
+
+```{r,echo=TRUE}
+tomato_SEMs_only <- subsetFeatures(
+  tomato,
+  featureData(tomato)$mz %in% sort(res$SEMs_df$mz)
+)
+
+res <- spatial_clustering_workflow(
+  msi_obj = tomato_SEMs_only,
+  python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
+  centers = 2
+)
+cluster_df <- res$cluster_df
+
+library(ggplot2)
+ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
+  geom_point(size = 0.1) + 
+  scale_y_reverse() +
+  coord_fixed() +
+  theme_void() +
+  guides(color = guide_legend(override.aes = list(size = 4))) +
+  labs(color = "Cluster")
+```
+
+
+
+# image overlay 
+
+This module provides an image overlay approach for result visualization. It can
+be used to highlight the distribution of a selected m/z feature or annotation
+within a region of interest (ROI), while preserving its spatial context in the
+full MSI dataset.
+
+In the examples below, the total ion current (TIC) image is used as the
+background layer, and either an ion image or the `cluster` annotation from a
+subsetted ROI is overlaid on top. This makes it easier to visualize how a
+region-specific signal is positioned within the overall sample.
+
+```{r,echo=TRUE}
+fruit <- subsetPixels(tomato, pixelData(tomato)$ROI == "Fruit")
+fruit
+
+msi_img_overlay(
+  msi_data01 = tomato,
+  value01 = "TIC",
+  color01 = colorRampPalette(c("white", "grey"))(100),
+  msi_data02 = fruit,
+  value02 = 240.8123,
+  color02 = colorRampPalette(c("black", "blue", "cyan", "yellow", "red"))(100),
+  show_axes = FALSE
+  )
+
+msi_img_overlay(
+  msi_data01 = tomato,
+  value01 = "TIC",
+  color01 = colorRampPalette(c("white", "grey"))(100),
+  msi_data02 = fruit,
+  value02 = "ROI",
+  color02 = c(
+    Calyx = "#E64B35",
+    Fruit = "#3C5488"
+  ),
+  show_axes = FALSE
+)
+
+```
+
+
 # Notes on interpretation
-The cherry_tomato_msi dataset is intentionally lightweight and simplified. It
-is designed to make package examples fast, stable, and easy to understand.
+The **cherry_tomato_msi** dataset is intentionally lightweight and simplified. It is designed to make package examples fast, stable, and easy to understand.
 
 A few caveats should be kept in mind:
 
-The dataset contains only 20 m/z features.
-The m/z values are manually defined and have no real biochemical meaning.
-The spatial patterns are image-derived rather than experimentally measured.
-Results are appropriate for workflow demonstration, but not for biological
-inference or method benchmarking.
-
-
-# Summary
-Using cherry_tomato_msi, we demonstrated how to:
-
-1.load an example MSImagingExperiment
-2.inspect spectra and ion images
-3.perform PCA and NMF
-4.run spatial shrunken centroids clustering
-5.apply the spatMetaCluster clustering workflow
-
-This toy dataset provides a compact and reproducible way to explore the core functions of spatMetaCluster.
-
+- The dataset contains only 32 m/z features.
+- The m/z values are manually defined and have no real biochemical meaning.
+- The spatial patterns are designed for demonstration rather than derived from
+  a real MSI experiment.
+- Results are appropriate for workflow illustration, but not for biological
+  inference or method benchmarking.
 
 # Acknowledgement
 This package is designed to work with `Cardinal` MSI objects, and some
@@ -276,7 +396,6 @@ demonstration steps in this vignette follow a workflow style similar to the
 Cardinal tutorials. The included `cherry_tomato_msi` dataset is a manually
 constructed toy example created for demonstration purposes and is not derived
 from the example datasets distributed with Cardinal.
-
 
 # SessionInfo
 ```{r SessionInfo,echo=TRUE}

@@ -1,41 +1,198 @@
-#' Run k-means clustering on embedding coordinates
+#' Run clustering on embedding coordinates
 #'
-#' This function performs k-means clustering on low-dimensional embedding
-#' coordinates, such as UMAP results.
+#' This function performs clustering on low-dimensional embedding coordinates,
+#' such as UMAP results. Supported methods include k-means clustering,
+#' Gaussian mixture modeling (GMM), fuzzy c-means clustering (FCM),
+#' density-based spatial clustering of applications with noise (DBSCAN),
+#' and hierarchical clustering.
 #'
 #' @param embedding A data.frame or matrix containing embedding coordinates.
-#' Typically the output of \code{run_umap_py()}.
-#' @param centers Integer; number of clusters.
-#' @param seed Integer; random seed for k-means. Default is \code{2024}.
+#' Typically the output of \code{run_umap_py()} or another dimensionality
+#' reduction function. All columns must be numeric.
+#' @param method Character string specifying the clustering method.
+#' Supported options are \code{"kmeans"}, \code{"gmm"}, \code{"fcm"},
+#' \code{"dbscan"}, and \code{"hclust"}.
+#' @param centers Integer; number of clusters. Used when
+#' \code{method = "kmeans"}, \code{"gmm"}, \code{"fcm"}, or \code{"hclust"}.
+#' Default is \code{10L}.
+#' @param eps Numeric; neighborhood radius used for
+#' \code{method = "dbscan"}. Must be provided when using DBSCAN.
+#' @param minPts Integer; minimum number of points required to form a dense
+#' region for \code{method = "dbscan"}. Default is \code{5L}.
+#' @param hclust_method Character string specifying the agglomeration method
+#' for hierarchical clustering. Passed to \code{stats::hclust()}.
+#' Default is \code{"ward.D2"}.
+#' @param seed Integer; random seed used for methods with stochastic behavior,
+#' including \code{"kmeans"} and \code{"fcm"}. Default is \code{2026L}.
+#' @param nstart Integer; number of random sets used by
+#' \code{stats::kmeans()}. Default is \code{10L}.
 #'
-#' @return A list with two elements:
+#' @return A list containing clustering results with at least the following
+#' components:
 #' \describe{
-#'   \item{kmeans}{The raw \code{stats::kmeans()} result object.}
+#'   \item{method}{The clustering method used.}
+#'   \item{result}{The raw clustering result object returned by the underlying method.}
 #'   \item{cluster}{A factor vector of cluster assignments.}
 #' }
 #'
-#' @examples
-#' emb <- data.frame(UMAP1 = rnorm(20), UMAP2 = rnorm(20))
-#' res <- run_kmeans_cluster(emb, centers = 3)
-#' table(res$cluster)
+#' Additional components may be included depending on the method:
+#' \describe{
+#'   \item{membership}{For \code{method = "fcm"}, the soft membership matrix.}
+#' }
+#'
+#' For \code{method = "dbscan"}, cluster label \code{0} indicates noise points.
 #'
 #' @export
-run_kmeans_cluster <- function(embedding, centers = 10, seed = 2024) {
+run_clustering <- function(
+    embedding,
+    method = c("kmeans", "gmm", "fcm", "dbscan", "hclust"),
+    centers = 10L,
+    eps = NULL,
+    minPts = 5L,
+    hclust_method = "ward.D2",
+    seed = 2026L,
+    nstart = 10L
+) {
   if (!is.data.frame(embedding) && !is.matrix(embedding)) {
-    stop("Embedding must be a data.frame or matrix.")
+    stop("'embedding' must be a data.frame or matrix.")
   }
 
   if (ncol(embedding) < 2) {
-    stop("Embedding must contain at least 2 columns.")
+    stop("'embedding' must contain at least 2 columns.")
   }
 
-  set.seed(seed)
-  km <- stats::kmeans(embedding[, 1:2, drop = FALSE], centers = centers)
+  embedding_mat <- as.matrix(embedding)
 
-  list(
-    kmeans = km,
-    cluster = as.factor(km$cluster)
-  )
+  if (!is.numeric(embedding_mat)) {
+    stop("'embedding' must contain only numeric values.")
+  }
+
+  if (anyNA(embedding_mat)) {
+    stop("'embedding' must not contain missing values.")
+  }
+
+  method <- match.arg(method)
+
+  if (!is.numeric(centers) || length(centers) != 1 || is.na(centers)) {
+    stop("'centers' must be a single positive integer.")
+  }
+  centers <- as.integer(centers)
+  if (centers < 1L) {
+    stop("'centers' must be a positive integer.")
+  }
+
+  if (!is.numeric(minPts) || length(minPts) != 1 || is.na(minPts)) {
+    stop("'minPts' must be a single positive integer.")
+  }
+  minPts <- as.integer(minPts)
+  if (minPts < 1L) {
+    stop("'minPts' must be a positive integer.")
+  }
+
+  if (!is.numeric(seed) || length(seed) != 1 || is.na(seed)) {
+    stop("'seed' must be a single integer.")
+  }
+  seed <- as.integer(seed)
+
+  if (!is.numeric(nstart) || length(nstart) != 1 || is.na(nstart)) {
+    stop("'nstart' must be a single positive integer.")
+  }
+  nstart <- as.integer(nstart)
+  if (nstart < 1L) {
+    stop("'nstart' must be a positive integer.")
+  }
+
+  if (!is.character(hclust_method) || length(hclust_method) != 1 || is.na(hclust_method)) {
+    stop("'hclust_method' must be a single character string.")
+  }
+
+  if (method %in% c("kmeans", "gmm", "fcm", "hclust")) {
+    if (centers > nrow(embedding_mat)) {
+      stop("'centers' cannot be greater than the number of rows in 'embedding'.")
+    }
+  }
+
+  if (method == "kmeans") {
+    set.seed(seed)
+    km <- stats::kmeans(embedding_mat, centers = centers, nstart = nstart)
+
+    return(list(
+      method = method,
+      result = km,
+      cluster = as.factor(km$cluster)
+    ))
+  }
+
+  if (method == "gmm") {
+    if (!requireNamespace("mclust", quietly = TRUE)) {
+      stop("Package 'mclust' is required for method = 'gmm'. Please install it.")
+    }
+
+    bic <- mclust::mclustBIC(embedding_mat, G = centers)
+    gmm <- mclust::summaryMclustBIC(bic, data = embedding_mat)
+
+    return(list(
+      method = method,
+      result = gmm,
+      cluster = as.factor(gmm$classification)
+    ))
+  }
+
+  if (method == "fcm") {
+    if (!requireNamespace("e1071", quietly = TRUE)) {
+      stop("Package 'e1071' is required for method = 'fcm'. Please install it.")
+    }
+
+    set.seed(seed)
+    fcm <- e1071::cmeans(embedding_mat, centers = centers)
+
+    return(list(
+      method = method,
+      result = fcm,
+      cluster = as.factor(fcm$cluster),
+      membership = fcm$membership
+    ))
+  }
+
+  if (method == "dbscan") {
+    if (!requireNamespace("dbscan", quietly = TRUE)) {
+      stop("Package 'dbscan' is required for method = 'dbscan'. Please install it.")
+    }
+
+    if (is.null(eps)) {
+      stop("'eps' must be provided when method = 'dbscan'.")
+    }
+    if (!is.numeric(eps) || length(eps) != 1 || is.na(eps) || eps <= 0) {
+      stop("'eps' must be a single positive numeric value.")
+    }
+
+    db <- dbscan::dbscan(embedding_mat, eps = eps, minPts = minPts)
+
+    return(list(
+      method = method,
+      result = db,
+      cluster = as.factor(db$cluster)
+    ))
+  }
+
+  if (method == "hclust") {
+    if (nrow(embedding_mat) > 5000L) {
+      warning(
+        "Hierarchical clustering may be slow and memory-intensive for large datasets.",
+        call. = FALSE
+      )
+    }
+
+    d <- stats::dist(embedding_mat)
+    hc <- stats::hclust(d, method = hclust_method)
+    cl <- stats::cutree(hc, k = centers)
+
+    return(list(
+      method = method,
+      result = hc,
+      cluster = as.factor(cl)
+    ))
+  }
 }
 
 
@@ -45,117 +202,97 @@ run_kmeans_cluster <- function(embedding, centers = 10, seed = 2024) {
 #' and pixel metadata into a single data.frame for downstream visualization or
 #' export.
 #'
-#' @param embedding Data frame or matrix with embedding coordinates.
-#' @param cluster Cluster labels.
-#' @param pixel_info Pixel metadata from \code{extract_spectra_matrix()}.
+#' @param embedding A data.frame or matrix containing embedding coordinates.
+#' @param cluster A vector of cluster labels, typically returned by
+#'   \code{run_clustering()}.
+#' @param pixel_info A data.frame of pixel metadata returned by
+#'   \code{extract_spectra_matrix()}.
 #'
-#' @return A data.frame containing UMAP coordinates, cluster assignments, and
-#' selected pixel metadata.
+#' @return A data.frame containing embedding coordinates, cluster assignments,
+#' and pixel metadata.
+#'
+#' @details
+#' The number of rows in \code{embedding}, \code{cluster}, and \code{pixel_info}
+#' must be identical. The output always contains a column named
+#' \code{cluster}.
 #'
 #' @export
 build_cluster_dataframe <- function(embedding, cluster, pixel_info) {
-  embedding <- as.data.frame(embedding)
-  pixel_info <- as.data.frame(pixel_info)
-
-  if (nrow(embedding) != length(cluster)) {
-    stop("Length of cluster labels must match number of rows in embedding.")
+  if (!is.data.frame(embedding) && !is.matrix(embedding)) {
+    stop("'embedding' must be a data.frame or matrix.")
   }
 
-  if (nrow(pixel_info) != nrow(embedding)) {
-    stop("pixel_info must have the same number of rows as embedding.")
+  embedding_df <- as.data.frame(embedding)
+
+  if (!is.data.frame(pixel_info)) {
+    stop("'pixel_info' must be a data.frame.")
   }
 
-  if (!"pixel_ID" %in% colnames(pixel_info)) {
-    stop("pixel_info must contain 'pixel_ID'.")
+  if (length(cluster) != nrow(embedding_df)) {
+    stop("Length of 'cluster' must match the number of rows in 'embedding'.")
   }
 
-  if (ncol(embedding) < 2) {
-    stop("embedding must contain at least 2 columns.")
+  if (nrow(pixel_info) != nrow(embedding_df)) {
+    stop("Number of rows in 'pixel_info' must match the number of rows in 'embedding'.")
   }
 
-  out <- data.frame(
-    UMAP1 = embedding[[1]],
-    UMAP2 = embedding[[2]],
-    kmeans_cluster = cluster,
-    run = if ("run" %in% colnames(pixel_info)) pixel_info$run else NA,
-    x = if ("x" %in% colnames(pixel_info)) pixel_info$x else NA,
-    y = if ("y" %in% colnames(pixel_info)) pixel_info$y else NA,
-    z = if ("z" %in% colnames(pixel_info)) pixel_info$z else NA,
-    pixel_ID = pixel_info$pixel_ID,
+  cluster_df <- cbind(
+    embedding_df,
+    cluster = as.factor(cluster),
+    pixel_info,
     stringsAsFactors = FALSE
   )
 
-  rownames(out) <- as.character(pixel_info$pixel_ID)
-
-  out
+  as.data.frame(cluster_df, stringsAsFactors = FALSE)
 }
 
 
 #' Attach clustering results back to Cardinal pixelData
 #'
-#' @param msi_obj A Cardinal MSI object.
-#' @param cluster_df A data.frame containing at least:
-#'   \code{pixel_ID}, \code{UMAP1}, \code{UMAP2}, \code{kmeans_cluster}.
+#' This function writes cluster labels from a clustering result table back into
+#' \code{pixelData(msi_obj)}.
 #'
-#' @return The input MSI object with updated pixelData.
+#' @param msi_obj A Cardinal MSI object.
+#' @param cluster_df A data.frame containing at least the columns
+#'   \code{pixel_ID} and \code{cluster}.
+#'
+#' @return The input MSI object with updated cluster labels in
+#'   \code{pixelData(msi_obj)}.
+#'
+#' @details
+#' Cluster labels are matched back to \code{msi_obj} using the \code{pixel_ID}
+#' column. The updated \code{pixelData(msi_obj)} will contain a new column
+#' named \code{cluster}.
+#'
 #' @export
 attach_cluster_to_pixeldata <- function(msi_obj, cluster_df) {
-  if (!requireNamespace("Cardinal", quietly = TRUE)) {
-    stop("Package 'Cardinal' is required but not installed.")
-  }
-
-  pd_df <- as.data.frame(Cardinal::pixelData(msi_obj))
-
   if (!is.data.frame(cluster_df)) {
-    cluster_df <- as.data.frame(cluster_df)
+    stop("'cluster_df' must be a data.frame.")
   }
 
-  required_cols <- c("pixel_ID", "UMAP1", "UMAP2", "kmeans_cluster")
+  required_cols <- c("pixel_ID", "cluster")
   missing_cols <- setdiff(required_cols, colnames(cluster_df))
   if (length(missing_cols) > 0) {
     stop(
-      "cluster_df is missing required columns: ",
-      paste(missing_cols, collapse = ", ")
+      "'cluster_df' must contain the following columns: ",
+      paste(required_cols, collapse = ", ")
     )
   }
 
-  if (anyDuplicated(cluster_df$pixel_ID)) {
-    stop("cluster_df contains duplicated pixel_ID values.")
+  pd <- Cardinal::pixelData(msi_obj)
+
+  if (!"pixel_ID" %in% colnames(pd)) {
+    stop("'pixelData(msi_obj)' must contain a 'pixel_ID' column.")
   }
 
-  if (!"pixel_ID" %in% colnames(pd_df)) {
-    if (is.null(rownames(pd_df))) {
-      rownames(pd_df) <- paste0("spectrum=", seq_len(nrow(pd_df)) - 1L)
-    }
-
-    pixel_rowname <- rownames(pd_df)
-
-    if ("run" %in% colnames(pd_df)) {
-      pixel_ID <- paste(pd_df$run, pixel_rowname, sep = "_")
-    } else {
-      pixel_ID <- pixel_rowname
-    }
-
-    Cardinal::pixelData(msi_obj)$pixel_ID <- pixel_ID
-    pd_df <- as.data.frame(Cardinal::pixelData(msi_obj))
-  }
-
-  idx <- match(pd_df$pixel_ID, cluster_df$pixel_ID)
+  idx <- match(pd$pixel_ID, cluster_df$pixel_ID)
 
   if (anyNA(idx)) {
-    stop("Some pixel_ID values in pixelData(msi_obj) are missing from cluster_df.")
+    stop("Some pixel_ID values in 'pixelData(msi_obj)' were not found in 'cluster_df'.")
   }
 
-  cluster_df2 <- cluster_df[idx, , drop = FALSE]
-
-  if (!all(pd_df$pixel_ID == cluster_df2$pixel_ID)) {
-    stop("pixel_ID mismatch after reordering cluster_df.")
-  }
-
-  Cardinal::pixelData(msi_obj)$UMAP1 <- cluster_df2$UMAP1
-  Cardinal::pixelData(msi_obj)$UMAP2 <- cluster_df2$UMAP2
-  Cardinal::pixelData(msi_obj)$kmeans_cluster <- cluster_df2$kmeans_cluster
+  pd$cluster <- cluster_df$cluster[idx]
+  Cardinal::pixelData(msi_obj) <- pd
 
   msi_obj
 }
-

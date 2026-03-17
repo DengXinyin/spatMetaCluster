@@ -11,10 +11,13 @@
 #' @param x A numeric matrix with samples/pixels as rows and features as columns.
 #' @param python_path Optional character string specifying the Python executable.
 #' If \code{NULL}, the current \pkg{reticulate} Python configuration will be used.
-#' @param metric Distance metric used by UMAP. Default is \code{"cosine"}.
+#' @param metric Distance metric used by UMAP. Must be one of
+#' \code{"cosine"} or \code{"euclidean"}. Default is \code{"cosine"}.
 #' @param n_neighbors Integer; number of neighbors used by UMAP. Default is \code{10L}.
 #' @param min_dist Numeric; UMAP \code{min_dist} parameter. Default is \code{0.05}.
 #' @param n_components Integer; number of embedding dimensions. Default is \code{2L}.
+#' Any positive integer is allowed, but \code{2} or \code{3} is recommended
+#' for most visualization and exploratory analysis tasks.
 #' @param random_state Integer; random seed for UMAP. Default is \code{2025L}.
 #' @param n_jobs Integer; number of parallel jobs used by UMAP. Default is \code{1L}.
 #' @param verbose Logical; whether to print UMAP progress. Default is \code{TRUE}.
@@ -25,8 +28,12 @@
 #' @examples
 #' \dontrun{
 #' mat <- matrix(runif(100), nrow = 10)
-#' emb <- run_umap_py(mat, python_path = "/path/to/python")
-#' head(emb)
+#' emb2 <- run_umap_py(mat, python_path = "/path/to/python", n_components = 2)
+#' head(emb2)
+#'
+#' emb3 <- run_umap_py(mat, python_path = "/path/to/python",
+#'                     metric = "euclidean", n_components = 3)
+#' head(emb3)
 #' }
 #'
 #' @export
@@ -47,6 +54,16 @@ run_umap_py <- function(
     stop("Package 'reticulate' is required but not installed.")
   }
 
+  metric <- match.arg(metric, choices = c("cosine", "euclidean"))
+
+  if (!is.numeric(n_components) || length(n_components) != 1 || is.na(n_components)) {
+    stop("'n_components' must be a single positive integer.")
+  }
+  n_components <- as.integer(n_components)
+  if (n_components < 1L) {
+    stop("'n_components' must be a positive integer.")
+  }
+
   if (!is.null(python_path)) {
     reticulate::use_python(python_path, required = TRUE)
   }
@@ -60,7 +77,7 @@ run_umap_py <- function(
     metric = metric,
     n_neighbors = as.integer(n_neighbors),
     min_dist = min_dist,
-    n_components = as.integer(n_components),
+    n_components = n_components,
     random_state = as.integer(random_state),
     n_jobs = as.integer(n_jobs),
     verbose = verbose

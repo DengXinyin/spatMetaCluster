@@ -16,7 +16,6 @@ extract_spectra_matrix <- function(msi_obj) {
   }
 
   intensity_obj <- Cardinal::intensity(msi_obj)
-
   pixel_info <- as.data.frame(Cardinal::pixelData(msi_obj))
   mz_vals <- Cardinal::mz(msi_obj)
 
@@ -26,8 +25,7 @@ extract_spectra_matrix <- function(msi_obj) {
   intensity_mat <- tryCatch(
     {
       tmp <- intensity_obj[seq_len(nr), seq_len(nc)]
-      mat <- as.matrix(tmp)
-      mat
+      as.matrix(tmp)
     },
     error = function(e) {
       stop(
@@ -60,16 +58,18 @@ extract_spectra_matrix <- function(msi_obj) {
     )
   }
 
-  if (is.null(rownames(pixel_info))) {
-    rownames(pixel_info) <- paste0("spectrum=", seq_len(nrow(pixel_info)) - 1L)
-  }
+  if (!"pixel_ID" %in% colnames(pixel_info)) {
+    if (is.null(rownames(pixel_info))) {
+      rownames(pixel_info) <- paste0("spectrum=", seq_len(nrow(pixel_info)) - 1L)
+    }
 
-  pixel_info$pixel_rowname <- rownames(pixel_info)
+    pixel_info$pixel_rowname <- rownames(pixel_info)
 
-  if ("run" %in% colnames(pixel_info)) {
-    pixel_info$pixel_ID <- paste(pixel_info$run, pixel_info$pixel_rowname, sep = "_")
-  } else {
-    pixel_info$pixel_ID <- pixel_info$pixel_rowname
+    if ("run" %in% colnames(pixel_info)) {
+      pixel_info$pixel_ID <- paste(pixel_info$run, seq_len(nrow(pixel_info)), sep = "_")
+    } else {
+      pixel_info$pixel_ID <- paste0("pixel_", seq_len(nrow(pixel_info)))
+    }
   }
 
   rownames(spectra_mat) <- pixel_info$pixel_ID

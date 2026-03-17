@@ -7,18 +7,25 @@
 build_cluster_dataframe(embedding, cluster, pixel_info)
 }
 \arguments{
-\item{embedding}{Data frame or matrix with embedding coordinates.}
+\item{embedding}{A data.frame or matrix containing embedding coordinates.}
 
-\item{cluster}{Cluster labels.}
+\item{cluster}{A vector of cluster labels, typically returned by
+\code{run_clustering()}.}
 
-\item{pixel_info}{Pixel metadata from \code{extract_spectra_matrix()}.}
+\item{pixel_info}{A data.frame of pixel metadata returned by
+\code{extract_spectra_matrix()}.}
 }
 \value{
-A data.frame containing UMAP coordinates, cluster assignments, and
-selected pixel metadata.
+A data.frame containing embedding coordinates, cluster assignments,
+and pixel metadata.
 }
 \description{
 This function combines low-dimensional embedding coordinates, cluster labels,
 and pixel metadata into a single data.frame for downstream visualization or
 export.
+}
+\details{
+The number of rows in \code{embedding}, \code{cluster}, and \code{pixel_info}
+must be identical. The output always contains a column named
+\code{cluster}.
 }

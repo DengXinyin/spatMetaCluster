@@ -1,4 +1,4 @@
 library(testthat)
-library(spatMetaCluster)
+library(ARBO)
 
-test_check("spatMetaCluster")
+test_check("ARBO")

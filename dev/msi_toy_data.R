@@ -1,7 +1,7 @@
 #' Toy spatial metabolomics dataset
 #'
 #' A simulated \code{MSImagingExperiment} object for demonstrating the
-#' workflow in \pkg{spatMetaCluster}. The dataset contains a small 2D spatial
+#' workflow in \pkg{ARBO}. The dataset contains a small 2D spatial
 #' grid with region-specific spectral patterns.
 #'
 #' This dataset is intended for package examples, tutorials, and testing only.
@@ -19,10 +19,10 @@ library(dplyr)
 library(ggplot2)
 library(Cardinal)
 library(jpeg)
-# img <- readJPEG("/home/hsinyinteng/spatMetaCluster/tests/DSC00349.jpg")
+# img <- readJPEG("/home/hsinyinteng/ARBO/tests/DSC00349.jpg")
 
 library(png)
-img <- readPNG("/home/hsinyinteng/spatMetaCluster/tests/Cherry_tomato.png")
+img <- readPNG("~/ARBO/inst/extdata/Cherry_tomato.png")
 
 
 # 像素降采样
@@ -89,6 +89,12 @@ p1 <- ggplot(pixel_df, aes(x = x, y = y, fill = cluster)) +
 
 print(p1)
 
+
+table(pixel_df$cluster)
+# 红色的果肉部分： Fruit flesh。
+# 绿色的萼片： Calyx 或 Sepals。
+pixel_df$ROI <- factor(ifelse(pixel_df$cluster == 3, "Calyx", "Fruit"))
+pixel_df$cluster <- pixel_df$ROI
 
 # 生成 spectra ----------
 generate_spectra_from_clusters <- function(
@@ -213,7 +219,7 @@ generate_spectra_from_clusters <- function(
 
 sim_res <- generate_spectra_from_clusters(
   pixel_df = pixel_df,
-  n_features = 1000,
+  n_features = 3000,
   seed = 2025,
   mz_min = 100,
   mz_max = 1000,
@@ -255,17 +261,62 @@ make_demo_msi <- function(pixel_df, spectra, mz, run_name = "MSI_demo") {
 demo_msi <- make_demo_msi(pixel_df, spectra, mz, "cherry_tomato")
 demo_msi
 
-demo_msi2 <- demo_msi |> peakPick(SNR = 2) |> peakAlign()
+demo_msi1 <- demo_msi |> peakPick(SNR = 2) |> peakAlign()
+demo_msi1
+image(demo_msi1,
+      mz=featureData(demo_msi1)$mz[1:50],
+      smooth="gaussian",
+      enhance="hist",
+      scale=T,
+      key=F)
 
-demo_msi2 <- subsetFeatures(demo_msi2,
-                            mz > 141 & mz < 160 |
-                              mz > 240 & mz < 260 |
-                              mz > 343 & mz < 358 |
-                              mz > 443 & mz < 458)
+
+demo_msi2 <- subsetFeatures(demo_msi1,
+                            mz > 140 & mz < 159 |
+                            # mz > 230 & mz < 236 |
+                            mz > 240 & mz < 260)
 demo_msi2
 
+image(demo_msi2,
+      mz=featureData(demo_msi2)$mz,
+      smooth="gaussian",
+      enhance="hist",
+      scale=T,
+      key=F)
+
+pixelData(demo_msi2)$ROI <- pixelData(demo_msi2)$cluster
+pixelData(demo_msi2)$cluster <- NULL
+pixelData(demo_msi2)$R <- NULL
+pixelData(demo_msi2)$G <- NULL
+pixelData(demo_msi2)$B <- NULL
+head(pixelData(demo_msi2))
+
+image(demo_msi2, "ROI")
+
+cherry_tomato_msi <- demo_msi2
+# 文件存放在 data/cherry_tomato_msi.rda，用户可使用data(demo_msi)进行调用
+usethis::use_data(cherry_tomato_msi, overwrite = TRUE)
+# 别忘了重新生成文档
+# 如果你用了 roxygen2：
+devtools::document()
+# 检查帮助文件：
+?cherry_tomato_msi
+# 加载数据测试：
+data(cherry_tomato_msi)
+cherry_tomato_msi
+
+
+# # 保存结果至mouse_14_ovary_pixel_merged_1236_features.imzML文件夹，包括log文件, metadata文件, pdata文件，imzML文件和ibd文件
+# imzfile <- file.path("/home/hsinyinteng/Spatial_Metabolomics/mouse_ovary/continuous_result_20241113/", "mouse_14_ovary_pixel_merged_1236_features.imzML")
+# writeMSIData(demo_msi2, file = imzfile)
+#
+# list.files(imzfile)
+# file.exists(imzfile)  # 返回 TRUE 表示文件生成成功
+# file.size(imzfile) > 0  # 返回 TRUE 表示文件非空
+
+
 # cherry_tomato ---------
-devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
+devtools::load_all("/home/hsinyinteng/ARBO", reset = TRUE)
 data(cherry_tomato_msi)
 demo_msi2 <- cherry_tomato_msi
 demo_msi2
@@ -289,12 +340,12 @@ image(demo_msi2,
 
 
 # 聚类方法对比 ---------
-demo_msi2_pca <- PCA(demo_msi2, ncomp=4)
+demo_msi2_pca <- PCA(demo_msi2, ncomp=2)
 demo_msi2_pca
 image(demo_msi2_pca, smooth="adaptive", enhance="histogram")
 
 
-demo_msi2_nmf <- NMF(demo_msi2, ncomp=4, niter=30)
+demo_msi2_nmf <- NMF(demo_msi2, ncomp=2, niter=30)
 demo_msi2_nmf
 image(demo_msi2_nmf, smooth="adaptive", enhance="histogram")
 
@@ -302,28 +353,29 @@ image(demo_msi2_nmf, smooth="adaptive", enhance="histogram")
 set.seed(2026)
 demo_msi2_ssc <- spatialShrunkenCentroids(
   demo_msi2,
-  weights="adaptive", r=2, k=4, s=2)
-
+  weights="adaptive", r=2, k=2, s=2)
 demo_msi2_ssc
 image(demo_msi2_ssc, i=1:1)
 
 
-
-devtools::load_all("/home/hsinyinteng/spatMetaCluster", reset = TRUE)
-res <- spatial_kmeans_workflow(
+devtools::load_all("/home/hsinyinteng/ARBO", reset = TRUE)
+res <- spatial_clustering_workflow(
   msi_obj = demo_msi2,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
-  centers = 4,
+  centers = 2,
   metric = "cosine",
-  n_neighbors = 25L,
-  min_dist = 0.3,
+  n_neighbors = 15L,
+  min_dist = 0.1,
   n_components = 2L
 )
 head(res$cluster_df)
 
 cluster_df <- res$cluster_df
+cluster_df$kmeans_cluster <- cluster_df$cluster
 # umap_df <- res$umap_df
-# duck_msi3 <- res$msi_obj
+tomato <- res$msi_obj
+
+library(ggplot2)
 ggplot(cluster_df, aes(x, y, color = factor(kmeans_cluster))) +
   geom_point(size = 0.1) +
   scale_y_reverse() +
@@ -357,25 +409,9 @@ ggplot(pixel_df, aes(x = x, y = y, fill = cluster)) +
 
 
 
-
-cherry_tomato_msi <- demo_msi2
-# 文件存放在 data/cherry_tomato_msi.rda，用户可使用data(demo_msi)进行调用
-usethis::use_data(cherry_tomato_msi, overwrite = TRUE)
-# 别忘了重新生成文档
-# 如果你用了 roxygen2：
-devtools::document()
-# 检查帮助文件：
-?cherry_tomato_msi
-# 加载数据测试：
-data(cherry_tomato_msi)
-cherry_tomato_msi
+table(pixelData(tomato)$cluster)
+pixelData(tomato)$ROI <- ifelse(pixelData(tomato)$cluster == 2, "Calyx", "Fruit")
+image(tomato, "ROI")
 
 
-# 保存结果至mouse_14_ovary_pixel_merged_1236_features.imzML文件夹，包括log文件, metadata文件, pdata文件，imzML文件和ibd文件
-imzfile <- file.path("/home/hsinyinteng/Spatial_Metabolomics/mouse_ovary/continuous_result_20241113/", "mouse_14_ovary_pixel_merged_1236_features.imzML")
-writeMSIData(demo_msi2, file = imzfile)
-
-list.files(imzfile)
-file.exists(imzfile)  # 返回 TRUE 表示文件生成成功
-file.size(imzfile) > 0  # 返回 TRUE 表示文件非空
 

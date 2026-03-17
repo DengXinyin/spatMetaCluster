@@ -12,8 +12,9 @@ spectra.
 \item{spectraData}{One intensity assay.}
 \item{featureData}{Feature metadata including \code{mz}, \code{count}, and \code{freq}.}
 \item{pixelData}{Pixel metadata including spatial coordinates (\code{x}, \code{y}),
-run information, RGB channels (\code{R}, \code{G}, \code{B}), and \code{pixel_ID}.}
-\item{mass range}{From 141.1193 to 457.5927.}
+run information, \code{pixel_ID}, and a region annotation column \code{ROI}
+(e.g., \code{Fruit}, \code{Calyx}).}
+\item{mass range}{From 140.3475 to 259.6539.}
 \item{centroided}{\code{TRUE}.}
 }
 }
@@ -25,7 +26,7 @@ photograph, with manually defined example m/z features for demonstration only.
 data(cherry_tomato_msi)
 }
 \description{
-A toy \code{MSImagingExperiment} dataset included in \pkg{spatMetaCluster} for
+A toy \code{MSImagingExperiment} dataset included in \pkg{ARBO} for
 demonstrating spatial metabolomics workflows.
 }
 \details{
@@ -41,6 +42,6 @@ demonstrations.
 
 This lightweight dataset is designed to provide a reproducible example for
 data handling, visualization, and clustering workflows implemented in
-\pkg{spatMetaCluster}.
+\pkg{ARBO}.
 }
 \keyword{datasets}

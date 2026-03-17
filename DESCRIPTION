@@ -1,30 +1,42 @@
-Package: spatMetaCluster
+Package: ARBO
 Type: Package
-Title: Spatial Metabolomics Clustering Utilities with Python UMAP Backend
-Version: 0.1.0
-Date: 2026-03-11
+Title: Rapid Spatial Clustering and Enriched Metabolite Discovery for MSI Data
+Version: 0.4.0
 Authors@R: 
     person("Xinyin Deng", email = "2386180950@qq.com", role = c("aut", "cre"))
-Description: Provides utilities for preprocessing and clustering spatial
-    metabolomics data, including Python-based UMAP embedding, k-means
-    clustering, and integration of cluster labels into Cardinal MSI objects.
+Description: Provides utilities for preprocessing, visualization, and spatial
+    clustering of mass spectrometry imaging (MSI) metabolomics data. The
+    package includes Python-based UMAP embedding through 'reticulate',
+    multiple clustering methods, reconstruction and overlay of MSI images,
+    and screening of spatially enriched metabolites. Results can be linked
+    back to Cardinal MSI objects for downstream analysis.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+LazyDataCompression: xz
 Depends:
     R (>= 4.4)
 Imports:
     Cardinal,
     reticulate,
+    dplyr,
+    cowplot,
+    ggplot2,
+    magrittr,
+    rlang,
     stats
 Suggests:
     testthat (>= 3.0.0),
     knitr,
     rmarkdown,
-    ggplot2
+    writexl,
+    mclust,
+    e1071,
+    dbscan
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
-URL: https://github.com/DengXinyin/spatMetaCluster
-BugReports: https://github.com/DengXinyin/spatMetaCluster/issues
+URL: https://github.com/DengXinyin/ARBO
+BugReports: https://github.com/DengXinyin/ARBO/issues
+
