@@ -1,3 +1,13 @@
+# ARBO 0.4.1
+## New features
+- Added parallel execution support for Python UMAP via `n_jobs`.
+- `run_umap_py()` now allows `random_state = NULL` for non-deterministic parallel UMAP.
+- `spatial_clustering_workflow()` now supports `n_jobs` and `umap_seed = NULL`.
+
+## Improvements
+- Improved documentation for the interaction between UMAP random seeds and parallel execution.
+- Clarified that `n_jobs` only affects the Python UMAP step, not downstream clustering in R.
+
 # ARBO 0.4.0
 - Rename the package to `ARBO`.
 - Update package metadata and documentation.

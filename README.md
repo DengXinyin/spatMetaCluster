@@ -93,14 +93,20 @@ cherry_tomato_msi <- cherry_tomato_msi |>
 res <- spatial_clustering_workflow(
   msi_obj = cherry_tomato_msi,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
-  centers = 2,
+  clustering_method = "kmeans",
+  centers = 2L,  
+  metric = "cosine",
   n_neighbors = 15L,
-  min_dist = 0.1
+  min_dist = 0.1,
+  n_components = 2L,
+  n_jobs = 1L,
+  umap_seed = NULL,
+  verbose = TRUE
 )
 
 cluster_df <- res$cluster_df
 
-ggplot(cluster_df, aes(x, y, color = factor(cluster_label))) +
+ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
   geom_point(size = 1) +
   scale_y_reverse() +
   coord_fixed() +

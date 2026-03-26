@@ -18,7 +18,9 @@ spatial_clustering_workflow(
   n_neighbors = 10L,
   min_dist = 0.05,
   n_components = 2L,
-  umap_seed = 2025L
+  umap_seed = 2025L,
+  n_jobs = 1L,
+  verbose = TRUE
 )
 }
 \arguments{
@@ -50,7 +52,7 @@ Default is \code{"ward.D2"}.}
 stochastic behavior, including \code{"kmeans"} and \code{"fcm"}.
 Default is \code{2026L}.}
 
-\item{nstart}{Integer; number of random sets used by
+\item{nstart}{Integer; number of random starts used by
 \code{stats::kmeans()}. Default is \code{10L}.}
 
 \item{metric}{Character; UMAP distance metric. Must be one of
@@ -64,44 +66,59 @@ Default is \code{2026L}.}
 is allowed, but \code{2} or \code{3} is recommended for most visualization
 and exploratory analysis tasks. Default is \code{2L}.}
 
-\item{umap_seed}{Integer; random seed for UMAP. Default is \code{2025L}.}
+\item{umap_seed}{Optional integer; random seed for UMAP. Default is
+\code{2025L}. Use \code{NULL} to allow non-deterministic execution.
+In Python \pkg{umap-learn}, a fixed seed may disable or limit parallel
+execution. If \code{n_jobs != 1L} and \code{umap_seed} is not \code{NULL},
+the downstream UMAP call may switch the Python-side seed to \code{NULL}
+to allow parallel execution.}
+
+\item{n_jobs}{Integer; number of parallel jobs used by the Python UMAP
+backend. Default is \code{1L}. Use \code{-1L} to request all available CPU
+cores if supported by the Python backend. This argument affects only the
+Python UMAP step and does not automatically parallelize downstream clustering
+performed in R.}
+
+\item{verbose}{Logical; whether to print UMAP progress information.
+Default is \code{TRUE}.}
 }
 \value{
 A list with the following elements:
 \describe{
-\item{spectra_filtered}{The spectra matrix after removing constant features.}
-\item{spectra_scaled}{The spectra matrix after feature scaling using
+\item{spectra_filtered}{A numeric matrix after removing constant features.}
+\item{spectra_scaled}{A numeric matrix after feature scaling using
 min-max normalization.}
 \item{umap_df}{A data.frame containing UMAP coordinates.}
 \item{clustering_result}{A list returned by \code{run_clustering()},
-containing the raw clustering result and cluster assignments.}
-\item{cluster_df}{A data.frame containing embedding, cluster labels,
-and metadata.}
-\item{msi_obj}{The updated Cardinal MSI object with cluster labels in
-pixelData.}
+containing the fitted clustering result and cluster assignments.}
+\item{cluster_df}{A data.frame containing UMAP coordinates, cluster labels,
+and pixel metadata.}
+\item{msi_obj}{The updated Cardinal MSI object with cluster labels added
+to \code{pixelData}.}
 }
 }
 \description{
-This high-level function performs a complete workflow for spatial metabolomics
-clustering:
+This high-level function performs a complete workflow for spatial
+metabolomics clustering:
 \enumerate{
-\item Extract spectra matrix and pixel metadata from a Cardinal MSI object
+\item Extract the spectra matrix and pixel metadata from a Cardinal MSI object
 \item Remove constant features
 \item Apply feature scaling using min-max normalization
 \item Run Python UMAP through \pkg{reticulate}
-\item Perform clustering on UMAP coordinates
+\item Perform clustering on the UMAP embedding
 \item Build a clustering result table
-\item Write cluster labels back into \code{pixelData(msi_obj)}
+\item Attach cluster labels back to \code{pixelData(msi_obj)}
 }
 }
 \details{
-This workflow requires a Python environment configured through
-\pkg{reticulate} when UMAP is run via the Python backend.
+This workflow is designed for spatial metabolomics data stored in a
+Cardinal-compatible MSI object. UMAP is computed using the Python
+\pkg{umap-learn} backend via \pkg{reticulate}.
 
-Clustering is performed on the UMAP embedding generated from the scaled
-spectra matrix.
+The clustering step is performed on the UMAP embedding generated from the
+scaled spectra matrix.
 
-Method-specific clustering parameters:
+Method-specific clustering arguments are interpreted as follows:
 \itemize{
 \item \code{"kmeans"} uses \code{centers}, \code{clustering_seed}, and \code{nstart}.
 \item \code{"gmm"} uses \code{centers}.
@@ -110,30 +127,65 @@ Method-specific clustering parameters:
 \item \code{"hclust"} uses \code{centers} and \code{hclust_method}.
 }
 
+The \code{n_jobs} argument only controls parallel execution in the Python
+\pkg{umap-learn} backend. It does not parallelize feature extraction,
+feature scaling, or clustering methods executed in R.
+
+For Python \pkg{umap-learn}, fixed random seeds and parallel execution may
+conflict. In practice, when \code{umap_seed} is fixed, the backend may
+override \code{n_jobs} to \code{1}. To enable actual parallel execution,
+set \code{umap_seed = NULL}.
+
 For \code{clustering_method = "dbscan"}, cluster label \code{0} indicates
 noise points.
 }
 \examples{
 \dontrun{
 library(Cardinal)
+
 msi_obj <- readImzML("example.imzML")
 
-res <- spatial_clustering_workflow(
+## Reproducible single-thread workflow
+res1 <- spatial_clustering_workflow(
   msi_obj = msi_obj,
   python_path = "/path/to/python",
   clustering_method = "kmeans",
-  centers = 10L
+  centers = 10L,
+  metric = "cosine",
+  n_neighbors = 10L,
+  min_dist = 0.05,
+  n_components = 2L,
+  umap_seed = 2025L,
+  n_jobs = 1L
 )
 
-head(res$umap_df)
-table(res$cluster_df$cluster)
+head(res1$umap_df)
+table(res1$cluster_df$cluster)
 
-res_dbscan <- spatial_clustering_workflow(
+## Parallel UMAP workflow
+## To allow actual parallelism in Python umap-learn, use umap_seed = NULL
+res2 <- spatial_clustering_workflow(
+  msi_obj = msi_obj,
+  python_path = "/path/to/python",
+  clustering_method = "kmeans",
+  centers = 10L,
+  metric = "cosine",
+  n_neighbors = 10L,
+  min_dist = 0.05,
+  n_components = 2L,
+  umap_seed = NULL,
+  n_jobs = 4L
+)
+
+## DBSCAN example
+res3 <- spatial_clustering_workflow(
   msi_obj = msi_obj,
   python_path = "/path/to/python",
   clustering_method = "dbscan",
   eps = 0.3,
-  minPts = 10L
+  minPts = 10L,
+  umap_seed = 2025L,
+  n_jobs = 1L
 )
 }
 

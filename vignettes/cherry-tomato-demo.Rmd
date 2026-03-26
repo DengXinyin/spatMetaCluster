@@ -194,11 +194,14 @@ res <- ARBO::spatial_clustering_workflow(
   msi_obj = tomato,
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
   clustering_method = "kmeans",
-  centers = 2L,
+  centers = 2L,  # 聚类数量
   metric = "cosine",
   n_neighbors = 15L,
   min_dist = 0.1,
-  n_components = 2L
+  n_components = 2L,
+  n_jobs = 1L,
+  umap_seed = NULL,
+  verbose = TRUE
 ) # 15+0.2,0.4
 
 head(res$cluster_df)

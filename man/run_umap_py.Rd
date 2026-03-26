@@ -33,9 +33,16 @@ If \code{NULL}, the current \pkg{reticulate} Python configuration will be used.}
 Any positive integer is allowed, but \code{2} or \code{3} is recommended
 for most visualization and exploratory analysis tasks.}
 
-\item{random_state}{Integer; random seed for UMAP. Default is \code{2025L}.}
+\item{random_state}{Optional integer; random seed for UMAP. Default is
+\code{2025L}. Use \code{NULL} to allow non-deterministic execution. In the
+Python \pkg{umap-learn} backend, setting a fixed \code{random_state} may
+disable or limit parallel execution.}
 
-\item{n_jobs}{Integer; number of parallel jobs used by UMAP. Default is \code{1L}.}
+\item{n_jobs}{Integer; number of parallel jobs used by UMAP. Default is
+\code{1L}. Use \code{-1L} to request all available CPU cores if supported
+by the Python backend. If \code{n_jobs != 1L} and \code{random_state} is not
+\code{NULL}, this function will issue a warning and set the Python UMAP
+\code{random_state} to \code{NULL} to allow parallel execution.}
 
 \item{verbose}{Logical; whether to print UMAP progress. Default is \code{TRUE}.}
 }
@@ -52,16 +59,34 @@ A working Python environment with \pkg{umap-learn} and \pkg{numpy} installed
 is required. This function was tested with Python 3.9, \pkg{numpy} 1.24.4,
 and \pkg{umap-learn} 0.5.7 in a conda environment, although other compatible
 versions may also work.
+
+In Python \pkg{umap-learn}, fixed random seeds and parallel execution may be
+incompatible. In particular, when \code{random_state} is fixed, the backend
+may override \code{n_jobs} to \code{1}. To enable actual parallel execution,
+use \code{random_state = NULL}.
 }
 \examples{
 \dontrun{
 mat <- matrix(runif(100), nrow = 10)
-emb2 <- run_umap_py(mat, python_path = "/path/to/python", n_components = 2)
-head(emb2)
 
-emb3 <- run_umap_py(mat, python_path = "/path/to/python",
-                    metric = "euclidean", n_components = 3)
-head(emb3)
+emb_single <- run_umap_py(
+  mat,
+  python_path = "/path/to/python",
+  n_components = 2,
+  random_state = 2025L,
+  n_jobs = 1L
+)
+head(emb_single)
+
+emb_parallel <- run_umap_py(
+  mat,
+  python_path = "/path/to/python",
+  metric = "euclidean",
+  n_components = 2,
+  random_state = NULL,
+  n_jobs = 4L
+)
+head(emb_parallel)
 }
 
 }

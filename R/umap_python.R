@@ -18,22 +18,48 @@
 #' @param n_components Integer; number of embedding dimensions. Default is \code{2L}.
 #' Any positive integer is allowed, but \code{2} or \code{3} is recommended
 #' for most visualization and exploratory analysis tasks.
-#' @param random_state Integer; random seed for UMAP. Default is \code{2025L}.
-#' @param n_jobs Integer; number of parallel jobs used by UMAP. Default is \code{1L}.
+#' @param random_state Optional integer; random seed for UMAP. Default is
+#' \code{2025L}. Use \code{NULL} to allow non-deterministic execution. In the
+#' Python \pkg{umap-learn} backend, setting a fixed \code{random_state} may
+#' disable or limit parallel execution.
+#' @param n_jobs Integer; number of parallel jobs used by UMAP. Default is
+#' \code{1L}. Use \code{-1L} to request all available CPU cores if supported
+#' by the Python backend. If \code{n_jobs != 1L} and \code{random_state} is not
+#' \code{NULL}, this function will issue a warning and set the Python UMAP
+#' \code{random_state} to \code{NULL} to allow parallel execution.
 #' @param verbose Logical; whether to print UMAP progress. Default is \code{TRUE}.
 #'
 #' @return A data.frame containing UMAP coordinates. Column names are
 #' \code{UMAP1}, \code{UMAP2}, ... depending on \code{n_components}.
 #'
+#' @details
+#' In Python \pkg{umap-learn}, fixed random seeds and parallel execution may be
+#' incompatible. In particular, when \code{random_state} is fixed, the backend
+#' may override \code{n_jobs} to \code{1}. To enable actual parallel execution,
+#' use \code{random_state = NULL}.
+#'
 #' @examples
 #' \dontrun{
 #' mat <- matrix(runif(100), nrow = 10)
-#' emb2 <- run_umap_py(mat, python_path = "/path/to/python", n_components = 2)
-#' head(emb2)
 #'
-#' emb3 <- run_umap_py(mat, python_path = "/path/to/python",
-#'                     metric = "euclidean", n_components = 3)
-#' head(emb3)
+#' emb_single <- run_umap_py(
+#'   mat,
+#'   python_path = "/path/to/python",
+#'   n_components = 2,
+#'   random_state = 2025L,
+#'   n_jobs = 1L
+#' )
+#' head(emb_single)
+#'
+#' emb_parallel <- run_umap_py(
+#'   mat,
+#'   python_path = "/path/to/python",
+#'   metric = "euclidean",
+#'   n_components = 2,
+#'   random_state = NULL,
+#'   n_jobs = 4L
+#' )
+#' head(emb_parallel)
 #' }
 #'
 #' @export
@@ -56,7 +82,22 @@ run_umap_py <- function(
 
   metric <- match.arg(metric, choices = c("cosine", "euclidean"))
 
-  if (!is.numeric(n_components) || length(n_components) != 1 || is.na(n_components)) {
+  if (!is.numeric(n_neighbors) || length(n_neighbors) != 1L || is.na(n_neighbors)) {
+    stop("'n_neighbors' must be a single positive integer.")
+  }
+  n_neighbors <- as.integer(n_neighbors)
+  if (n_neighbors < 2L) {
+    stop("'n_neighbors' must be >= 2.")
+  }
+
+  if (!is.numeric(min_dist) || length(min_dist) != 1L || is.na(min_dist)) {
+    stop("'min_dist' must be a single non-negative numeric value.")
+  }
+  if (min_dist < 0) {
+    stop("'min_dist' must be >= 0.")
+  }
+
+  if (!is.numeric(n_components) || length(n_components) != 1L || is.na(n_components)) {
     stop("'n_components' must be a single positive integer.")
   }
   n_components <- as.integer(n_components)
@@ -64,22 +105,53 @@ run_umap_py <- function(
     stop("'n_components' must be a positive integer.")
   }
 
+  if (!is.null(random_state)) {
+    if (!is.numeric(random_state) || length(random_state) != 1L || is.na(random_state)) {
+      stop("'random_state' must be NULL or a single integer.")
+    }
+    random_state <- as.integer(random_state)
+  }
+
+  if (!is.numeric(n_jobs) || length(n_jobs) != 1L || is.na(n_jobs)) {
+    stop("'n_jobs' must be a single integer.")
+  }
+  n_jobs <- as.integer(n_jobs)
+  if (n_jobs == 0L) {
+    stop("'n_jobs' must not be 0. Use 1L for single-threading or -1L for all available cores if supported.")
+  }
+
+  if (!is.logical(verbose) || length(verbose) != 1L || is.na(verbose)) {
+    stop("'verbose' must be TRUE or FALSE.")
+  }
+
   if (!is.null(python_path)) {
     reticulate::use_python(python_path, required = TRUE)
+  }
+
+  if (n_jobs != 1L && !is.null(random_state)) {
+    warning(
+      "In Python 'umap-learn', a fixed 'random_state' may force 'n_jobs' to 1. ",
+      "To allow parallel execution, 'random_state' will be set to NULL for the Python UMAP call."
+    )
+    random_state_py <- NULL
+  } else {
+    random_state_py <- random_state
   }
 
   umap <- reticulate::import("umap", delay_load = FALSE)
   np <- reticulate::import("numpy", delay_load = FALSE)
 
-  np$random$seed(as.integer(random_state))
+  if (!is.null(random_state_py)) {
+    np$random$seed(random_state_py)
+  }
 
   umap_result <- umap$UMAP(
     metric = metric,
-    n_neighbors = as.integer(n_neighbors),
+    n_neighbors = n_neighbors,
     min_dist = min_dist,
     n_components = n_components,
-    random_state = as.integer(random_state),
-    n_jobs = as.integer(n_jobs),
+    random_state = random_state_py,
+    n_jobs = n_jobs,
     verbose = verbose
   )$fit_transform(x)
 
