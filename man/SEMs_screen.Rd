@@ -15,7 +15,7 @@ SEMs_screen(
   file_name = NULL,
   file_format = "csv",
   ssc_seed = 2025L,
-  coloc_threshold = median
+  coloc_threshold = stats::median
 )
 }
 \arguments{
@@ -49,7 +49,7 @@ one of \code{"csv"} or \code{"xlsx"}. Default is \code{"csv"}.}
 \item{ssc_seed}{Integer; random seed for SSC analysis. Default is \code{2025L}.}
 
 \item{coloc_threshold}{Threshold function passed to \code{colocalized()}.
-Default is \code{median}.}
+Default is \code{stats::median}.}
 }
 \value{
 A list with the following elements:
@@ -67,32 +67,4 @@ This function identifies spatially enriched metabolites (SEMs) by combining
 spatial shrunken centroids (SSC) results and spatial colocalization analysis
 from a Cardinal MSI object. Only the final SEMs table is saved when
 \code{save_table = TRUE}.
-}
-\details{
-Spatially enriched metabolites are defined as features satisfying both
-high specificity and high abundance:
-\itemize{
-\item \code{is_high_specific}: \code{|statistic| > t_statistic_threshold},
-\code{|cor| > cor_threshold}, and \code{M2 > M2_threshold}
-\item \code{is_high_abundance}: \code{M1 > M1_threshold}
-}
-
-The final filtered table is:
-\preformatted{
-SEMs_df <- results_df[
-  results_df$is_high_specific | results_df$is_high_abundance,
-  , drop = FALSE
-]
-}
-}
-\examples{
-\dontrun{
-data(cherry_tomato_msi)
-res <- SEMs_screen(
-  msi_obj = cherry_tomato_msi,
-  group_col = "ROI"
-)
-head(res$SEMs_df)
-}
-
 }

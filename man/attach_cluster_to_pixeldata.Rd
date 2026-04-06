@@ -13,15 +13,9 @@ attach_cluster_to_pixeldata(msi_obj, cluster_df)
 \code{pixel_ID} and \code{cluster}.}
 }
 \value{
-The input MSI object with updated cluster labels in
-\code{pixelData(msi_obj)}.
+The input MSI object with updated cluster labels in \code{pixelData(msi_obj)}.
 }
 \description{
 This function writes cluster labels from a clustering result table back into
 \code{pixelData(msi_obj)}.
-}
-\details{
-Cluster labels are matched back to \code{msi_obj} using the \code{pixel_ID}
-column. The updated \code{pixelData(msi_obj)} will contain a new column
-named \code{cluster}.
 }

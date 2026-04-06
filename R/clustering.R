@@ -236,34 +236,41 @@ build_cluster_dataframe <- function(embedding, cluster, pixel_info) {
     stop("Number of rows in 'pixel_info' must match the number of rows in 'embedding'.")
   }
 
-  cluster_df <- cbind(
+  if (!"pixel_ID" %in% colnames(pixel_info)) {
+    stop("'pixel_info' must contain a 'pixel_ID' column.")
+  }
+
+  if (anyNA(pixel_info$pixel_ID)) {
+    stop("'pixel_info$pixel_ID' must not contain NA values.")
+  }
+
+  if (anyDuplicated(pixel_info$pixel_ID)) {
+    stop("'pixel_info$pixel_ID' must be unique.")
+  }
+
+  cluster_df <- data.frame(
+    pixel_ID = pixel_info$pixel_ID,
     embedding_df,
-    cluster = as.factor(cluster),
-    pixel_info,
-    stringsAsFactors = FALSE
+    cluster = cluster,
+    pixel_info[, setdiff(colnames(pixel_info), "pixel_ID"), drop = FALSE],
+    stringsAsFactors = FALSE,
+    check.names = FALSE
   )
 
-  as.data.frame(cluster_df, stringsAsFactors = FALSE)
+  cluster_df
 }
 
 
 #' Attach clustering results back to Cardinal pixelData
 #'
 #' This function writes cluster labels from a clustering result table back into
-#' \code{pixelData(msi_obj)}.
+#' `pixelData(msi_obj)`.
 #'
 #' @param msi_obj A Cardinal MSI object.
 #' @param cluster_df A data.frame containing at least the columns
-#'   \code{pixel_ID} and \code{cluster}.
+#'   `pixel_ID` and `cluster`.
 #'
-#' @return The input MSI object with updated cluster labels in
-#'   \code{pixelData(msi_obj)}.
-#'
-#' @details
-#' Cluster labels are matched back to \code{msi_obj} using the \code{pixel_ID}
-#' column. The updated \code{pixelData(msi_obj)} will contain a new column
-#' named \code{cluster}.
-#'
+#' @return The input MSI object with updated cluster labels in `pixelData(msi_obj)`.
 #' @export
 attach_cluster_to_pixeldata <- function(msi_obj, cluster_df) {
   if (!is.data.frame(cluster_df)) {
@@ -279,16 +286,19 @@ attach_cluster_to_pixeldata <- function(msi_obj, cluster_df) {
     )
   }
 
+  msi_obj <- ensure_pixel_id(msi_obj)
+
   pd <- Cardinal::pixelData(msi_obj)
+  pd_df <- as.data.frame(pd)
 
-  if (!"pixel_ID" %in% colnames(pd)) {
-    stop("'pixelData(msi_obj)' must contain a 'pixel_ID' column.")
-  }
-
-  idx <- match(pd$pixel_ID, cluster_df$pixel_ID)
+  idx <- match(pd_df$pixel_ID, cluster_df$pixel_ID)
 
   if (anyNA(idx)) {
-    stop("Some pixel_ID values in 'pixelData(msi_obj)' were not found in 'cluster_df'.")
+    missing_ids <- pd_df$pixel_ID[is.na(idx)]
+    stop(
+      "Some pixel_ID values in 'pixelData(msi_obj)' were not found in 'cluster_df'. ",
+      "Examples: ", paste(utils::head(missing_ids, 5), collapse = ", ")
+    )
   }
 
   pd$cluster <- cluster_df$cluster[idx]

@@ -1,12 +1,13 @@
 #' Extract spectra matrix and pixel metadata from a Cardinal MSI object
 #'
-#' @param msi_obj A Cardinal MSI object imported by \code{Cardinal::readImzML()}.
+#' @param msi_obj A Cardinal MSI object imported by `Cardinal::readImzML()`.
 #'
 #' @return A list containing:
 #' \describe{
 #'   \item{spectra}{Numeric matrix with pixels as rows and m/z features as columns.}
 #'   \item{pixel_info}{A data.frame of pixel metadata.}
 #'   \item{mz}{Numeric vector of m/z values.}
+#'   \item{msi_obj}{The MSI object with ensured `pixel_ID` in `pixelData`.}
 #' }
 #'
 #' @export
@@ -14,6 +15,8 @@ extract_spectra_matrix <- function(msi_obj) {
   if (!requireNamespace("Cardinal", quietly = TRUE)) {
     stop("Package 'Cardinal' is required but not installed.")
   }
+
+  msi_obj <- ensure_pixel_id(msi_obj)
 
   intensity_obj <- Cardinal::intensity(msi_obj)
   pixel_info <- as.data.frame(Cardinal::pixelData(msi_obj))
@@ -59,17 +62,7 @@ extract_spectra_matrix <- function(msi_obj) {
   }
 
   if (!"pixel_ID" %in% colnames(pixel_info)) {
-    if (is.null(rownames(pixel_info))) {
-      rownames(pixel_info) <- paste0("spectrum=", seq_len(nrow(pixel_info)) - 1L)
-    }
-
-    pixel_info$pixel_rowname <- rownames(pixel_info)
-
-    if ("run" %in% colnames(pixel_info)) {
-      pixel_info$pixel_ID <- paste(pixel_info$run, seq_len(nrow(pixel_info)), sep = "_")
-    } else {
-      pixel_info$pixel_ID <- paste0("pixel_", seq_len(nrow(pixel_info)))
-    }
+    stop("Internal error: 'pixel_ID' should exist after ensure_pixel_id().")
   }
 
   rownames(spectra_mat) <- pixel_info$pixel_ID
@@ -77,7 +70,8 @@ extract_spectra_matrix <- function(msi_obj) {
   list(
     spectra = spectra_mat,
     pixel_info = pixel_info,
-    mz = mz_vals
+    mz = mz_vals,
+    msi_obj = msi_obj
   )
 }
 
@@ -149,4 +143,36 @@ remove_constant_features <- function(x) {
   }
 
   x_filtered
+}
+
+
+
+#' Ensure a Cardinal MSI object contains a pixel_ID column
+#'
+#' If `pixelData(msi_obj)` does not contain a `pixel_ID` column, this function
+#' creates one and writes it back into the MSI object.
+#'
+#' @param msi_obj A Cardinal MSI object.
+#'
+#' @return The same MSI object with `pixel_ID` present in `pixelData`.
+#' @export
+ensure_pixel_id <- function(msi_obj) {
+  if (!requireNamespace("Cardinal", quietly = TRUE)) {
+    stop("Package 'Cardinal' is required but not installed.")
+  }
+
+  pd <- Cardinal::pixelData(msi_obj)
+  pd_df <- as.data.frame(pd)
+
+  if (!"pixel_ID" %in% colnames(pd_df)) {
+    if ("run" %in% colnames(pd_df)) {
+      pd$pixel_ID <- paste(pd_df$run, seq_len(nrow(pd_df)), sep = "_")
+    } else {
+      pd$pixel_ID <- paste0("pixel_", seq_len(nrow(pd_df)))
+    }
+
+    Cardinal::pixelData(msi_obj) <- pd
+  }
+
+  msi_obj
 }

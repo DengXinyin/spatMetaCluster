@@ -220,7 +220,10 @@ spatial_clustering_workflow <- function(
     stop("When 'umap_input_method = \"l2_pca\"', 'metric' must be 'euclidean'.")
   }
 
+  msi_obj <- ensure_pixel_id(msi_obj)
+
   extracted <- extract_spectra_matrix(msi_obj)
+  msi_obj <- extracted$msi_obj
 
   spectra <- extracted$spectra
   pixel_info <- extracted$pixel_info
@@ -304,4 +307,3 @@ spatial_clustering_workflow <- function(
     msi_obj = msi_obj_updated
   )
 }
-

@@ -177,7 +177,11 @@ UMAP workflow.
 - `apply_feature_scaling()` – scale features
 - `run_umap_py()` – run Python UMAP via `reticulate`
 - `run_clustering()` – cluster embedding coordinates, e.g. k-means
-- `spatial_clustering_workflow()` – complete end-to-end workflow with "scaled" and "l2_pca" UMAP input strategies
+- `spatial_clustering_workflow()` – complete end-to-end workflow with `"scaled"` and `"l2_pca"` UMAP input strategies
+- `add_clusters_to_msi()` – write clustering results back into a Cardinal MSI object
+- `SEMs_screen()` – screen spatially enriched metabolites using SSC and colocalization
+- `image2ggplot()` – reconstruct `Cardinal::image()` output with `ggplot2`
+- `msi_img_overlay()` – overlay multiple MSI images with internal legend handling
 
 
 ## Relationship to Cardinal

@@ -25,7 +25,7 @@
 #'   one of \code{"csv"} or \code{"xlsx"}. Default is \code{"csv"}.
 #' @param ssc_seed Integer; random seed for SSC analysis. Default is \code{2025L}.
 #' @param coloc_threshold Threshold function passed to \code{colocalized()}.
-#'   Default is \code{median}.
+#'   Default is \code{stats::median}.
 #'
 #' @return A list with the following elements:
 #' \describe{
@@ -37,37 +37,7 @@
 #'   \item{SEMs_df}{Final filtered table of spatially enriched metabolites.}
 #' }
 #'
-#' @details
-#' Spatially enriched metabolites are defined as features satisfying both
-#' high specificity and high abundance:
-#' \itemize{
-#'   \item \code{is_high_specific}: \code{|statistic| > t_statistic_threshold},
-#'   \code{|cor| > cor_threshold}, and \code{M2 > M2_threshold}
-#'   \item \code{is_high_abundance}: \code{M1 > M1_threshold}
-#' }
-#'
-#' The final filtered table is:
-#' \preformatted{
-#' SEMs_df <- results_df[
-#'   results_df$is_high_specific | results_df$is_high_abundance,
-#'   , drop = FALSE
-#' ]
-#' }
-#'
-#' @importFrom magrittr %>%
 #' @importFrom rlang .data
-#' @importFrom stats median
-#'
-#' @examples
-#' \dontrun{
-#' data(cherry_tomato_msi)
-#' res <- SEMs_screen(
-#'   msi_obj = cherry_tomato_msi,
-#'   group_col = "ROI"
-#' )
-#' head(res$SEMs_df)
-#' }
-#'
 #' @export
 SEMs_screen <- function(
     msi_obj,
@@ -80,7 +50,7 @@ SEMs_screen <- function(
     file_name = NULL,
     file_format = "csv",
     ssc_seed = 2025L,
-    coloc_threshold = median
+    coloc_threshold = stats::median
 ) {
   if (!is.character(group_col) || length(group_col) != 1L) {
     stop("'group_col' must be a single character string.")
@@ -106,11 +76,18 @@ SEMs_screen <- function(
     stop("Column '", group_col, "' was not found in pixelData(msi_obj).")
   }
 
-  group_vec <- as.factor(pixel_df[[group_col]])
+  group_raw <- pixel_df[[group_col]]
 
-  if (all(is.na(group_vec))) {
+  if (all(is.na(group_raw))) {
     stop("Grouping column '", group_col, "' contains only NA values.")
   }
+
+  non_na_groups <- unique(group_raw[!is.na(group_raw)])
+  if (length(non_na_groups) < 2) {
+    stop("Grouping column '", group_col, "' must contain at least 2 non-NA groups.")
+  }
+
+  group_vec <- as.factor(group_raw)
 
   set.seed(ssc_seed)
   ssc_res <- Cardinal::spatialShrunkenCentroids(
@@ -136,19 +113,64 @@ SEMs_screen <- function(
     BPPARAM = Cardinal::getCardinalBPPARAM()
   )
 
-  # 如果返回的是按组命名的 list，则按原始代码处理
-  if (is.list(coloc_res) && !inherits(coloc_res, "DataFrame") && !inherits(coloc_res, "data.frame")) {
-    colocalized_df <- dplyr::bind_rows(lapply(names(coloc_res), function(nm) {
-      df <- as.data.frame(coloc_res[[nm]])
-      df$tissue <- nm
+  colocalized_df <- NULL
+
+  if (is.list(coloc_res) &&
+      !inherits(coloc_res, "DataFrame") &&
+      !inherits(coloc_res, "data.frame")) {
+
+    coloc_names <- names(coloc_res)
+
+    if (is.null(coloc_names) || any(coloc_names == "")) {
+      stop(
+        "Cardinal::colocalized() returned a list, but list elements are not named. ",
+        "Unable to determine tissue/group labels."
+      )
+    }
+
+    colocalized_df <- dplyr::bind_rows(lapply(seq_along(coloc_res), function(i) {
+      df <- as.data.frame(coloc_res[[i]])
+      df$tissue <- coloc_names[i]
       df
     }))
   } else {
-    # 如果不是 list，说明 Cardinal 没按分组拆开，给出明确报错
+    colocalized_df <- as.data.frame(coloc_res)
+
+    if (!"tissue" %in% colnames(colocalized_df)) {
+      if ("class" %in% colnames(colocalized_df)) {
+        colocalized_df$tissue <- as.character(colocalized_df$class)
+      } else if ("group" %in% colnames(colocalized_df)) {
+        colocalized_df$tissue <- as.character(colocalized_df$group)
+      } else if ("ref" %in% colnames(colocalized_df)) {
+        colocalized_df$tissue <- as.character(colocalized_df$ref)
+      } else {
+        stop(
+          "Could not determine group labels from the output of Cardinal::colocalized(). ",
+          "Expected either:\n",
+          "1) a named list of group-wise results, or\n",
+          "2) a data.frame/DataFrame containing a 'tissue', 'class', 'group', or 'ref' column.\n",
+          "Actual columns were: ",
+          paste(colnames(colocalized_df), collapse = ", ")
+        )
+      }
+    }
+  }
+
+  required_ssc_cols <- c("i", "mz", "class", "statistic")
+  missing_ssc_cols <- setdiff(required_ssc_cols, colnames(ssc_df))
+  if (length(missing_ssc_cols) > 0) {
     stop(
-      "Cardinal::colocalized() did not return a group-wise list. ",
-      "This usually means 'group_col' was not interpreted as a categorical reference. ",
-      "Please check whether pixelData(msi_obj)[[group_col]] is a factor/character grouping variable."
+      "SSC result is missing required columns: ",
+      paste(missing_ssc_cols, collapse = ", ")
+    )
+  }
+
+  required_coloc_cols <- c("i", "mz", "cor", "M1", "M2", "tissue")
+  missing_coloc_cols <- setdiff(required_coloc_cols, colnames(colocalized_df))
+  if (length(missing_coloc_cols) > 0) {
+    stop(
+      "Colocalization result is missing required columns: ",
+      paste(missing_coloc_cols, collapse = ", ")
     )
   }
 
@@ -162,44 +184,49 @@ SEMs_screen <- function(
     stop("Merged table must contain both 'class' and 'tissue' columns.")
   }
 
-  matched_df <- merged_df[as.character(merged_df$class) == as.character(merged_df$tissue), , drop = FALSE]
+  matched_df <- merged_df[
+    as.character(merged_df$class) == as.character(merged_df$tissue),
+    ,
+    drop = FALSE
+  ]
 
-  results_df <- matched_df %>%
-    dplyr::mutate(
-      is_high_specific =
-        (abs(.data$statistic) > t_statistic_threshold) &
-        (abs(.data$cor) > cor_threshold) &
-        (.data$M2 > M2_threshold),
+  results_df <- dplyr::mutate(
+    matched_df,
+    is_high_specific =
+      (abs(.data$statistic) > t_statistic_threshold) &
+      (abs(.data$cor) > cor_threshold) &
+      (.data$M2 > M2_threshold),
 
-      is_high_abundance =
-        (.data$M1 > M1_threshold),
+    is_high_abundance =
+      (.data$M1 > M1_threshold),
 
-      specificity_tag = dplyr::case_when(
-        .data$statistic > t_statistic_threshold &
-          .data$cor > cor_threshold &
-          .data$M2 > M2_threshold ~ "Specifically enriched",
+    specificity_tag = dplyr::case_when(
+      .data$statistic > t_statistic_threshold &
+        .data$cor > cor_threshold &
+        .data$M2 > M2_threshold ~ "Specifically enriched",
 
-        .data$statistic < -t_statistic_threshold &
-          .data$cor < -cor_threshold ~ "Specifically depleted",
+      .data$statistic < -t_statistic_threshold &
+        .data$cor < -cor_threshold ~ "Specifically depleted",
 
-        abs(.data$statistic) < t_statistic_threshold / 2 &
-          .data$M1 < M1_threshold / 2 ~ "No clear spatial pattern",
+      abs(.data$statistic) < t_statistic_threshold / 2 &
+        .data$M1 < M1_threshold / 2 ~ "No clear spatial pattern",
 
-        TRUE ~ "Complex distribution"
-      ),
+      TRUE ~ "Complex distribution"
+    ),
 
-      abundance_tag = dplyr::if_else(
-        .data$M1 > M1_threshold,
-        "High abundance",
-        "Low abundance"
-      ),
+    abundance_tag = dplyr::if_else(
+      .data$M1 > M1_threshold,
+      "High abundance",
+      "Low abundance"
+    ),
 
-      composite_tag = paste(.data$specificity_tag, .data$abundance_tag, sep = " | ")
-    )
+    composite_tag = paste(.data$specificity_tag, .data$abundance_tag, sep = " | ")
+  )
 
   SEMs_df <- results_df[
     results_df$is_high_specific & results_df$is_high_abundance,
-    , drop = FALSE
+    ,
+    drop = FALSE
   ]
 
   if (save_table) {
@@ -229,4 +256,3 @@ SEMs_screen <- function(
     SEMs_df = SEMs_df
   )
 }
-

@@ -1,7 +1,7 @@
 Package: ARBO
 Type: Package
 Title: Rapid Spatial Clustering and Enriched Metabolite Discovery for MSI Data
-Version: 0.5.0
+Version: 0.5.1
 Authors@R: 
     person("Xinyin Deng", email = "2386180950@qq.com", role = c("aut", "cre"))
 Description: Provides utilities for preprocessing, visualization, and spatial
@@ -10,8 +10,10 @@ Description: Provides utilities for preprocessing, visualization, and spatial
     multiple clustering methods, reconstruction and overlay of MSI images,
     and screening of spatially enriched metabolites. Two UMAP input
     strategies are supported: direct min-max scaled spectra and row-wise
-    L2-normalized PCA scores computed with 'irlba'. Results can be linked
-    back to Cardinal MSI objects for downstream analysis.
+    L2-normalized PCA scores computed with 'irlba'. Clustering results can
+    be linked back to Cardinal MSI objects for downstream analysis, and
+    spatially enriched metabolites can be screened by integrating spatial
+    shrunken centroids and colocalization analysis.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -24,7 +26,6 @@ Imports:
     dplyr,
     cowplot,
     ggplot2,
-    magrittr,
     rlang,
     stats,
     irlba

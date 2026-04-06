@@ -15,6 +15,7 @@ A list containing:
 \item{spectra}{Numeric matrix with pixels as rows and m/z features as columns.}
 \item{pixel_info}{A data.frame of pixel metadata.}
 \item{mz}{Numeric vector of m/z values.}
+\item{msi_obj}{The MSI object with ensured \code{pixel_ID} in \code{pixelData}.}
 }
 }
 \description{

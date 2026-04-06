@@ -14,6 +14,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   collapse = TRUE,
+  eval=FALSE,
   comment = "#>",
   fig.align = "center"
 )
@@ -206,34 +207,34 @@ res <- ARBO::spatial_clustering_workflow(
 
 head(res$cluster_df)
 
-# kmeans
-res <- spatial_clustering_workflow(
-  msi_obj = tomato,
-  clustering_method = "kmeans",
-  centers = 2L
-)
-
-# gmm
-res <- spatial_clustering_workflow(
-  msi_obj = tomato,
-  clustering_method = "gmm",
-  centers = 2L
-)
-
-# fcm
-res <- spatial_clustering_workflow(
-  msi_obj = tomato,
-  clustering_method = "fcm",
-  centers = 2L
-)
-
-# dbscan
-res <- spatial_clustering_workflow(
-  msi_obj = tomato,
-  clustering_method = "dbscan",
-  eps = 0.3,
-  minPts = 2L
-)
+# # kmeans
+# res <- spatial_clustering_workflow(
+#   msi_obj = tomato,
+#   clustering_method = "kmeans",
+#   centers = 2L
+# )
+# 
+# # gmm
+# res <- spatial_clustering_workflow(
+#   msi_obj = tomato,
+#   clustering_method = "gmm",
+#   centers = 2L
+# )
+# 
+# # fcm
+# res <- spatial_clustering_workflow(
+#   msi_obj = tomato,
+#   clustering_method = "fcm",
+#   centers = 2L
+# )
+# 
+# # dbscan
+# res <- spatial_clustering_workflow(
+#   msi_obj = tomato,
+#   clustering_method = "dbscan",
+#   eps = 0.3,
+#   minPts = 2L
+# )
 
 # hclust
 # res <- spatial_clustering_workflow(
@@ -282,7 +283,7 @@ thresholds to these statistics, the function identifies metabolites with strong
 region-associated spatial patterns.
 
 ```{r SEMs-screen,echo=TRUE}
-res <- SEMs_screen(
+res_SEMs <- SEMs_screen(
   msi_obj = tomato,
   group_col = "ROI",
   t_statistic_threshold = 20,
@@ -294,11 +295,11 @@ res <- SEMs_screen(
   file_format = "xlsx"
 )
 
-dim(res$results_df)
-dim(res$SEMs_df)
+dim(res_SEMs$results_df)
+dim(res_SEMs$SEMs_df)
 
 image(tomato,
-      mz=sort(res$SEMs_df$mz),
+      mz=sort(res_SEMs$SEMs_df$mz),
       smooth="gaussian",
       enhance="hist",
       scale=TRUE,

@@ -1,3 +1,25 @@
+# ARBO 0.5.1
+
+## New features
+- Added two UMAP input strategies in `spatial_clustering_workflow()`:
+  - `"scaled"` for min-max scaled spectra
+  - `"l2_pca"` for row-wise L2-normalized spectra followed by PCA with `irlba`
+- Added `pca_n_components` to control the number of retained principal components
+  in the `"l2_pca"` workflow.
+- Enforced `metric = "euclidean"` when `umap_input_method = "l2_pca"`.
+
+## Improvements
+- Improved compatibility when writing clustering results back to Cardinal
+  MSI objects.
+- Updated `SEMs_screen()` to better handle different output structures returned
+  by `Cardinal::colocalized()`.
+- Removed unnecessary use of `magrittr` pipe import.
+
+## Package changes
+- Added `irlba` as a package dependency for PCA-based preprocessing.
+- Updated workflow documentation and examples to reflect the new UMAP input options.
+
+
 # ARBO 0.5.0
 
 ## New features
