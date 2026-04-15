@@ -1,24 +1,26 @@
-# ARBO 0.5.1
+# ARBO 1.0.0
 
-## New features
-- Added two UMAP input strategies in `spatial_clustering_workflow()`:
-  - `"scaled"` for min-max scaled spectra
-  - `"l2_pca"` for row-wise L2-normalized spectra followed by PCA with `irlba`
-- Added `pca_n_components` to control the number of retained principal components
-  in the `"l2_pca"` workflow.
-- Enforced `metric = "euclidean"` when `umap_input_method = "l2_pca"`.
+## Release highlights
+- First stable 1.0.0 release of `ARBO`.
+- Finalized the main spatial clustering workflow for Cardinal MSI objects.
+- Completed package documentation, examples, and vignette materials.
+- Consolidated support for two UMAP preprocessing strategies:
+  - `"scaled"`: min-max scaled spectra
+  - `"l2_pca"`: row-wise L2-normalized spectra followed by PCA with `irlba`
+- Stabilized integration of clustering results back into Cardinal MSI objects.
+- Finalized utilities for spatially enriched metabolite screening and MSI image visualization.
 
 ## Improvements
-- Improved compatibility when writing clustering results back to Cardinal
-  MSI objects.
-- Updated `SEMs_screen()` to better handle different output structures returned
-  by `Cardinal::colocalized()`.
+- Improved robustness of clustering result attachment to MSI objects.
+- Refined README and workflow documentation for package release.
+
+# ARBO 0.5.1
+
+## Improvements
+- Improved compatibility when writing clustering results back to Cardinal MSI objects.
+- Updated `SEMs_screen()` to better handle different output structures returned by `Cardinal::colocalized()`.
 - Removed unnecessary use of `magrittr` pipe import.
-
-## Package changes
-- Added `irlba` as a package dependency for PCA-based preprocessing.
-- Updated workflow documentation and examples to reflect the new UMAP input options.
-
+- Refined workflow documentation and examples.
 
 # ARBO 0.5.0
 
@@ -26,14 +28,11 @@
 - Added two UMAP input strategies in `spatial_clustering_workflow()`:
   - `"scaled"` for min-max scaled spectra
   - `"l2_pca"` for row-wise L2-normalized spectra followed by PCA with `irlba`
-- Added `pca_n_components` to control the number of retained principal components
-  in the `"l2_pca"` workflow.
+- Added `pca_n_components` to control the number of retained principal components in the `"l2_pca"` workflow.
 - Enforced `metric = "euclidean"` when `umap_input_method = "l2_pca"`.
 
 ## Package changes
 - Added `irlba` as a package dependency for PCA-based preprocessing.
-- Updated workflow documentation and examples to reflect the new UMAP input options.
-
 
 # ARBO 0.4.1
 
@@ -47,21 +46,21 @@
 - Clarified that `n_jobs` only affects the Python UMAP step, not downstream clustering in R.
 
 # ARBO 0.4.0
-- Rename the package to `ARBO`.
-- Update package metadata and documentation.
-- Refine clustering workflows and result integration into Cardinal MSI objects.
+- Renamed the package to `ARBO`.
+- Updated package metadata and documentation.
+- Refined clustering workflows and result integration into Cardinal MSI objects.
 
 # spatMetaCluster 0.3.1
-- Update vignettes.
+- Updated vignettes.
 
 # spatMetaCluster 0.3.0
-- Add `SEMs_screen()` for spatially enriched metabolite screening.
-- Add `image2ggplot()` to reconstruct `Cardinal::image()` output with `ggplot2`.
-- Add `msi_img_overlay()` for layered MSI image overlay with internal legend handling.
-- Update `cherry_tomato_msi` with additional m/z annotations and regenerated data.
+- Added `SEMs_screen()` for spatially enriched metabolite screening.
+- Added `image2ggplot()` to reconstruct `Cardinal::image()` output with `ggplot2`.
+- Added `msi_img_overlay()` for layered MSI image overlay with internal legend handling.
+- Updated `cherry_tomato_msi` with additional m/z annotations and regenerated data.
 
 # spatMetaCluster 0.2.0
-- Add a unified clustering interface via `run_clustering()`.
-- Rename `spatial_kmeans_workflow()` to `spatial_clustering_workflow()`.
-- Replace `minmax_normalize()` with `apply_feature_scaling(method = "minmax")`.
-- Update UMAP-related documentation and parameter descriptions.
+- Added a unified clustering interface via `run_clustering()`.
+- Renamed `spatial_kmeans_workflow()` to `spatial_clustering_workflow()`.
+- Replaced `minmax_normalize()` with `apply_feature_scaling(method = "minmax")`.
+- Updated UMAP-related documentation and parameter descriptions.

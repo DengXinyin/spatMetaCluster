@@ -1,12 +1,11 @@
 ---
 title: "Spatial metabolomics workflow using the cherry_tomato_msi example dataset"
 author: "Xinyin Deng"
-date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Spatial metabolomics workflow using the cherry_tomato_msi example dataset}
   %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[UTF-8]{inputenc}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -14,7 +13,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE,
   collapse = TRUE,
-  eval=FALSE,
+  eval=TRUE,
   comment = "#>",
   fig.align = "center"
 )
@@ -25,7 +24,7 @@ knitr::opts_chunk$set(
 This tutorial demonstrates a minimal spatial metabolomics workflow using the
 `cherry_tomato_msi` example dataset included in `ARBO`.
 
-`cherry_tomato_msi` is a toy `MSImagingExperiment` object designed for package examples and tutorials. It is not a real MSI acquisition dataset. The spatial structure was constructed to resemble a cherry tomato section, and the m/z features were manually defined for demonstration purposes. Therefore, the m/z values in this dataset should not be given biological or chemical interpretation.
+`cherry_tomato_msi` is a toy `MSImagingExperiment` object designed for package examples and tutorials. It is not a real MSI acquisition dataset. The spatial structure was constructed to resemble the cherry tomato, and the m/z features were manually defined for demonstration purposes. Therefore, the m/z values in this dataset should not be given biological or chemical interpretation.
 
 Despite its simplified nature, the dataset is useful for illustrating:
 
@@ -48,26 +47,22 @@ knitr::include_graphics(system.file("extdata", "Cherry_tomato.png", package = "A
 # if (!require("BiocManager", quietly = TRUE))
 #     install.packages("BiocManager")
 # BiocManager::install("Cardinal")
-
 # install.packages("remotes")
 # remotes::install_github("DengXinyin/ARBO")
 
 library(Cardinal)
-library(ggplot2)
 library(ARBO)
-
 data(cherry_tomato_msi)
 tomato <- cherry_tomato_msi
 tomato
 ```
 
-The example dataset contains 20 m/z features and 43,253 spectra. It is intentionally lightweight so that examples remain fast, stable, and reproducible.
+The example dataset contains 66 m/z features and 27680 spectra. It is intentionally lightweight so that examples remain fast, stable, and reproducible.
 
 
 ## Spectrum visualization
 
-A useful first step is to inspect the average spectrum across pixels. Below we
-plot the mean spectrum and annotate several peaks.
+Inspect the average spectrum across pixels. Below we will plot the mean spectrum and annotate several peaks.
 
 ```{r MSI-mean,echo=TRUE,fig.height=6,fig.width=12}
 tomato <- summarizeFeatures(tomato, c(Mean="mean"))
@@ -76,8 +71,8 @@ Cardinal::plot(
   tomato,
   isPeaks = TRUE,
   annPeaks = 6,
-  xlim=c(240,260),
-  "Mean", xlab="m/z", ylab="Intensity"
+  "Mean", 
+  xlab="m/z", ylab="Intensity"
 )
 ```
 
@@ -103,10 +98,7 @@ image(
 )
 ```
 
-This panel provides a quick view of spatial intensity variation across the toy
-cherry tomato section. Because the dataset was constructed for demonstration,
-the resulting ion maps are useful for illustrating MSI image visualization
-workflows, but they should not be interpreted biologically.
+This panel provides a quick view of spatial intensity variation across the toy cherry tomato section. Because the dataset was constructed for demonstration, the resulting ion maps are useful for illustrating MSI image visualization workflows, but they should not be interpreted biologically.
 
 # Spatial clustering with unsupervised methods 
 ## Principal component analysis (PCA) 
@@ -126,12 +118,10 @@ image(
 ```
 
 PCA is useful for identifying dominant global patterns in the dataset, although
-in this toy example the components mainly reflect the manually constructed
-structure in the data.
+in this toy example the components mainly reflect the manually constructed structure in the data.
 
 ## Non-negative matrix factorization (NMF) 
-NMF is another commonly used decomposition
-method for MSI data.
+NMF is another commonly used decomposition method for MSI data.
 ```{r NMF,echo=TRUE}
 tomato_nmf <- Cardinal::NMF(tomato, ncomp = 2, niter = 30)
 tomato_nmf
@@ -146,8 +136,7 @@ image(
 )
 ```
 
-NMF often produces parts-based spatial patterns, which can be easier to interpret
-in imaging data.
+NMF often produces parts-based spatial patterns, which can be easier to interpret in imaging data.
 
 ## Spatial shrunken centroids (SSC)
 `Cardinal` provides the `spatialShrunkenCentroids()` method for spatially aware segmentation / classification of MSI data.
@@ -173,29 +162,26 @@ This gives a spatially smoothed cluster assignment across the tissue region.
 
 ## Clustering with ARBO
 
-Next, we demonstrate the clustering workflow implemented in `ARBO`.
+Next, we will demonstrate the clustering workflow implemented in `ARBO`.
 
-Because this step depends on an external Python environment, the code is shown
-but not evaluated automatically in the vignette.
+Because this step depends on an external Python environment, the code is shown but not evaluated automatically in the vignette.
 
-The Python backend was tested with a conda environment containing Python 3.9, `numpy` 1.24.4, and `umap-learn` 0.5.7. Other compatible versions may also work when properly configured through `reticulate`.
+The Python backend was tested with a conda environment containing Python 3.9, `numpy` 1.24.4, and `umap-learn` 0.5.7. 
+```{bash, eval=FALSE}
+conda create -n dxy_python9 python=3.9 -y
+conda activate dxy_python9
+conda install -c conda-forge numpy=1.24.4 umap-learn=0.5.7 -y
+```
+Other compatible versions may also work when properly configured through `reticulate`.
 
 ```{r ARBO-clustering,echo=TRUE}
-# 虚拟环境设置 -------------------
-# conda deactivate 
-# conda deactivate
-# conda create -n dxy_python9 python=3.9 -y
-# conda activate dxy_python9
-# conda install -c conda-forge numpy=1.24.4 umap-learn=0.5.7 -y
-# 
-# python -c "import numpy; print(numpy.__version__)"  
-# python -c "import umap; print(umap.__version__)" 
-
+# Example conda environment setup -------------------
 res <- ARBO::spatial_clustering_workflow(
   msi_obj = tomato,
+  # python_path = "/path/to/conda/env/bin/python", # use your python path
   python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
   clustering_method = "kmeans",
-  centers = 2L,  # 聚类数量
+  centers = 2L,  # number of clusters
   metric = "cosine",
   n_neighbors = 15L,
   min_dist = 0.1,
@@ -203,7 +189,7 @@ res <- ARBO::spatial_clustering_workflow(
   n_jobs = 1L,
   umap_seed = NULL,
   verbose = TRUE
-) # 15+0.2,0.4
+) 
 
 head(res$cluster_df)
 
@@ -248,6 +234,7 @@ head(res$cluster_df)
 ### Plot the clustering result
 The output cluster assignments can be visualized using ggplot2.
 ```{r ARBO-plot,echo=TRUE,fig.height=4,fig.width=6}
+library(ggplot2)
 cluster_df <- res$cluster_df
 
 ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
@@ -258,29 +245,22 @@ ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
   labs(color = "Cluster") +
   guides(
     color = guide_legend(
-      override.aes = list(size = 4)
+      override.aes = list(size = 6)
     )
   )
 ```
-This plot provides a simple spatial view of the cluster labels produced by the
-workflow.
+This plot provides a simple spatial view of the cluster labels produced by the workflow.
 
 
 # Screening spatially enriched metabolites (SEMs)
 
-In this example, SEMs refer to metabolites showing strong spatial association
-with the predefined **Calyx** and **Fruit** regions stored in
+In this example, SEMs refer to metabolites showing strong spatial association with the predefined **Calyx** and **Fruit** regions stored in
 `pixelData(tomato)$ROI`.
 
-The screening process uses the existing pixel annotation in
-`pixelData(tomato)$ROI`, which labels pixels as **Calyx** or **Fruit**.
-For each metabolite, `SEMs_screen()` combines statistics from
-`spatialShrunkenCentroids()` and `colocalized()` to evaluate whether the
-feature is spatially enriched in one of these regions. The screening criteria
-include the SSC t-statistic, colocalization correlation (`cor`), and the
-abundance and specificity measures `M1` and `M2`. By applying user-defined
-thresholds to these statistics, the function identifies metabolites with strong
-region-associated spatial patterns.
+The screening process uses the existing pixel annotation in `pixelData(tomato)$ROI`, which labels pixels as **Calyx** or **Fruit**.
+
+For each metabolite, `SEMs_screen()` combines statistics from `spatialShrunkenCentroids()` and `colocalized()` to evaluate whether the feature is spatially enriched in one of these regions. The screening criteria include the SSC t-statistic, colocalization correlation (`cor`), and the
+abundance and specificity measures `M1` and `M2`. By applying user-defined thresholds to these statistics, the function identifies metabolites with strong region-associated spatial patterns.
 
 ```{r SEMs-screen,echo=TRUE}
 res_SEMs <- SEMs_screen(
@@ -297,6 +277,7 @@ res_SEMs <- SEMs_screen(
 
 dim(res_SEMs$results_df)
 dim(res_SEMs$SEMs_df)
+table(res_SEMs$SEMs_df$class)
 
 image(tomato,
       mz=sort(res_SEMs$SEMs_df$mz),
@@ -306,7 +287,7 @@ image(tomato,
       key=FALSE)
 
 ```
-As a result of the screening process, 21 out of the original 32 features were selected as SEMs. Based on their spatial distribution patterns, 13 of these features were predominantly localized to the Calyx, while the remaining 8 features were associated with the Fruit region.
+As a result of the screening process, 55 out of the original 66 features were selected as SEMs. Based on their spatial distribution patterns, 28 of these features were predominantly localized to the Calyx, while the remaining 27 features were associated with the Fruit region.
 
 It is important to note that these statistical results were obtained under idealized conditions, as the **cherry_tomato_msi** dataset was manually generated. When applying this screening approach to real-world MSI data, the corresponding thresholds may need to be adjusted to account for biological variability and technical noise inherent in experimental datasets.
 
@@ -318,8 +299,9 @@ We next asked whether the spatial structure of the dataset could be recovered wi
 ```{r,echo=TRUE}
 tomato_SEMs_only <- subsetFeatures(
   tomato,
-  featureData(tomato)$mz %in% sort(res$SEMs_df$mz)
+  featureData(tomato)$mz %in% sort(res_SEMs$SEMs_df$mz)
 )
+tomato_SEMs_only
 
 res <- spatial_clustering_workflow(
   msi_obj = tomato_SEMs_only,
@@ -334,23 +316,18 @@ ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
   scale_y_reverse() +
   coord_fixed() +
   theme_void() +
-  guides(color = guide_legend(override.aes = list(size = 4))) +
+  guides(color = guide_legend(override.aes = list(size = 6))) +
   labs(color = "Cluster")
 ```
 
 
 
-# image overlay 
+# Image overlay 
 
-This module provides an image overlay approach for result visualization. It can
-be used to highlight the distribution of a selected m/z feature or annotation
-within a region of interest (ROI), while preserving its spatial context in the
-full MSI dataset.
+This module provides an image overlay approach for result visualization. It can be used to highlight the distribution of a selected m/z feature or annotation within a region of interest (ROI), while preserving its spatial context in the full MSI dataset.
 
-In the examples below, the total ion current (TIC) image is used as the
-background layer, and either an ion image or the `cluster` annotation from a
-subsetted ROI is overlaid on top. This makes it easier to visualize how a
-region-specific signal is positioned within the overall sample.
+In the examples below, the total ion current (TIC) image is used as the background layer, and either an ion image or the `cluster` annotation from a
+subsetted ROI is overlaid on top. This makes it easier to visualize how a region-specific signal is positioned within the overall sample.
 
 ```{r,echo=TRUE}
 fruit <- subsetPixels(tomato, pixelData(tomato)$ROI == "Fruit")
@@ -360,8 +337,8 @@ msi_img_overlay(
   msi_data01 = tomato,
   value01 = "TIC",
   color01 = colorRampPalette(c("white", "grey"))(100),
-  msi_data02 = fruit,
-  value02 = 240.8123,
+  msi_data02 = tomato,
+  value02 = 558.4396,
   color02 = colorRampPalette(c("black", "blue", "cyan", "yellow", "red"))(100),
   show_axes = FALSE
   )
@@ -387,21 +364,19 @@ The **cherry_tomato_msi** dataset is intentionally lightweight and simplified. I
 
 A few caveats should be kept in mind:
 
-- The dataset contains only 32 m/z features.
+- The dataset contains only 66 m/z features.
 - The m/z values are manually defined and have no real biochemical meaning.
-- The spatial patterns are designed for demonstration rather than derived from
-  a real MSI experiment.
-- Results are appropriate for workflow illustration, but not for biological
-  inference or method benchmarking.
+- The spatial patterns are designed for demonstration rather than derived from a real MSI experiment.
+- Results are appropriate for workflow illustration, but not for biological inference or method benchmarking.
 
-# Acknowledgement
-This package is designed to work with `Cardinal` MSI objects, and some
-demonstration steps in this vignette follow a workflow style similar to the
-Cardinal tutorials. The included `cherry_tomato_msi` dataset is a manually
-constructed toy example created for demonstration purposes and is not derived
+# Acknowledgements
+This package is designed to work with `Cardinal` MSI objects, and some demonstration steps in this vignette follow a workflow style similar to the
+Cardinal tutorials. 
+
+The included `cherry_tomato_msi` dataset is a manually constructed toy example created for demonstration purposes and is not derived
 from the example datasets distributed with Cardinal.
 
-# SessionInfo
+# Session Information
 ```{r SessionInfo,echo=TRUE}
 sessionInfo()
 ```

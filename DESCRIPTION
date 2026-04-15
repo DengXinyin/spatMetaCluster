@@ -1,19 +1,17 @@
 Package: ARBO
 Type: Package
 Title: Rapid Spatial Clustering and Enriched Metabolite Discovery for MSI Data
-Version: 0.5.1
+Version: 1.0.0
 Authors@R: 
     person("Xinyin Deng", email = "2386180950@qq.com", role = c("aut", "cre"))
-Description: Provides utilities for preprocessing, visualization, and spatial
-    clustering of mass spectrometry imaging (MSI) metabolomics data. The
-    package includes Python-based UMAP embedding through 'reticulate',
-    multiple clustering methods, reconstruction and overlay of MSI images,
-    and screening of spatially enriched metabolites. Two UMAP input
-    strategies are supported: direct min-max scaled spectra and row-wise
-    L2-normalized PCA scores computed with 'irlba'. Clustering results can
-    be linked back to Cardinal MSI objects for downstream analysis, and
-    spatially enriched metabolites can be screened by integrating spatial
-    shrunken centroids and colocalization analysis.
+Description: Tools for preprocessing, visualization, spatial clustering,
+    and enriched metabolite screening for mass spectrometry imaging (MSI)
+    metabolomics data. The package supports Python-based UMAP embedding
+    through 'reticulate', multiple clustering methods, MSI image
+    reconstruction and overlay, and integration of clustering results into
+    Cardinal MSI objects. Supported UMAP input strategies include direct
+    min-max scaled spectra and row-wise L2-normalized PCA scores computed
+    with 'irlba'.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -22,21 +20,21 @@ Depends:
     R (>= 4.4)
 Imports:
     Cardinal,
-    reticulate,
-    dplyr,
     cowplot,
+    dplyr,
     ggplot2,
+    irlba,
+    reticulate,
     rlang,
-    stats,
-    irlba
+    stats
 Suggests:
-    testthat (>= 3.0.0),
-    knitr,
-    rmarkdown,
-    writexl,
-    mclust,
+    dbscan,
     e1071,
-    dbscan
+    knitr,
+    mclust,
+    rmarkdown,
+    testthat (>= 3.0.0),
+    writexl
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)

@@ -39,7 +39,7 @@ If Cardinal is not already installed, you may install it with:
 ```r
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-
+    
 BiocManager::install("Cardinal")
 ```
 
@@ -57,7 +57,7 @@ packages such as:
 - `e1071`
 - `dbscan`
 
-Python dependencies
+## Python dependencies
 Some functions in ARBO require a Python environment configured for
 reticulate, especially for UMAP embedding.
 
@@ -74,7 +74,7 @@ python -c "import numpy; print(numpy.__version__)"
 python -c "import umap; print(umap.__version__)"
 ```
 
-Notes on compatibility
+## Notes on compatibility
 Other Python versions may also work, but python, numpy, and umap-learn
 should be version-compatible. If a newer Python environment is used, please
 ensure that the required packages can be successfully imported through
@@ -111,7 +111,7 @@ cherry_tomato_msi <- cherry_tomato_msi |>
 
 res <- spatial_clustering_workflow(
   msi_obj = cherry_tomato_msi,
-  python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
+  python_path = "/path/to/conda/env/bin/python",
   clustering_method = "kmeans",
   centers = 2L,
   umap_input_method = "scaled",
@@ -166,10 +166,9 @@ browseVignettes("ARBO")
 ```
 
 ## Project status
-`ARBO` is a lightweight research utility package for spatial metabolomics
-clustering workflows. The current version is functional and documented. Recent
-updates include support for parallel Python UMAP and an L2-normalized PCA-based
-UMAP workflow.
+`ARBO` is a stable research utility package for spatial metabolomics MSI workflows.
+Version 1.0.0 provides a documented and tested workflow for preprocessing,
+Python-based UMAP embedding, clustering, visualization, and enriched metabolite screening.
 
 ## Main functions
 - `extract_spectra_matrix()` – extract spectra and pixel metadata from a Cardinal MSI object
