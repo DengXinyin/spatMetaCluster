@@ -19,7 +19,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-
 # Overview
 This tutorial demonstrates a minimal spatial metabolomics workflow using the
 `cherry_tomato_msi` example dataset included in `ARBO`.
@@ -41,7 +40,6 @@ For reference tutorials on the Cardinal package, please see [Cardinal vignettes]
 knitr::include_graphics(system.file("extdata", "Cherry_tomato.png", package = "ARBO"))
 ```
 
-
 # Load packages and example data
 ```{r Load-MSI-data,echo=TRUE}
 # if (!require("BiocManager", quietly = TRUE))
@@ -58,7 +56,6 @@ tomato
 ```
 
 The example dataset contains 66 m/z features and 27680 spectra. It is intentionally lightweight so that examples remain fast, stable, and reproducible.
-
 
 ## Spectrum visualization
 
@@ -190,7 +187,6 @@ res <- ARBO::spatial_clustering_workflow(
   umap_seed = NULL,
   verbose = TRUE
 ) 
-
 head(res$cluster_df)
 
 # # kmeans
@@ -230,7 +226,6 @@ head(res$cluster_df)
 # )
 ```
 
-
 ### Plot the clustering result
 The output cluster assignments can be visualized using ggplot2.
 ```{r ARBO-plot,echo=TRUE,fig.height=4,fig.width=6}
@@ -250,7 +245,6 @@ ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
   )
 ```
 This plot provides a simple spatial view of the cluster labels produced by the workflow.
-
 
 # Screening spatially enriched metabolites (SEMs)
 
@@ -291,7 +285,6 @@ As a result of the screening process, 55 out of the original 66 features were se
 
 It is important to note that these statistical results were obtained under idealized conditions, as the **cherry_tomato_msi** dataset was manually generated. When applying this screening approach to real-world MSI data, the corresponding thresholds may need to be adjusted to account for biological variability and technical noise inherent in experimental datasets.
 
-
 # Spatially enriched metabolites are sufficient to reconstruct MSI spatial architecture
 
 We next asked whether the spatial structure of the dataset could be recovered without using the full set of detected ions. To address this, spatial clustering was performed using only spatially enriched metabolites (SEMs). The resulting clustering pattern still recapitulated the main spatial organization of the toy MSI dataset, indicating that SEMs retain the dominant spatially informative variation. This illustrates that a reduced set of region-associated features can serve as a compact proxy for the full MSI feature space. In practice, such feature reduction can improve interpretability and reduce noise from less informative ions.
@@ -319,8 +312,6 @@ ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
   guides(color = guide_legend(override.aes = list(size = 6))) +
   labs(color = "Cluster")
 ```
-
-
 
 # Image overlay 
 
@@ -355,9 +346,7 @@ msi_img_overlay(
   ),
   show_axes = FALSE
 )
-
 ```
-
 
 # Notes on interpretation
 The **cherry_tomato_msi** dataset is intentionally lightweight and simplified. It is designed to make package examples fast, stable, and easy to understand.

@@ -136,7 +136,7 @@ ggplot(cluster_df, aes(x, y, color = factor(cluster))) +
 # 2. L2-normalized PCA workflow
 res_l2_pca <- spatial_clustering_workflow(
   msi_obj = cherry_tomato_msi,
-  python_path = "/home/hsinyinteng/miniconda3/envs/dxy_python9/bin/python",
+  python_path = "/path/to/conda/env/bin/python",
   clustering_method = "kmeans",
   centers = 2L,
   umap_input_method = "l2_pca",
