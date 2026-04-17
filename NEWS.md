@@ -1,7 +1,14 @@
 # ARBO 1.0.1
 
 ## Release highlights
-- Add image origin and usage note of artificially constructed MSI data `Miss Teng`.
+
+- Added Zenodo DOI information for software citation.
+- Added image origin and usage notes for the artificially constructed MSI dataset **Miss Teng**.
+
+## DOI
+
+- Project concept DOI: https://doi.org/10.5281/zenodo.19622206
+- Version DOI for ARBO v1.0.1: https://doi.org/10.5281/zenodo.19622207
 
 
 # ARBO 1.0.0

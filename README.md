@@ -1,5 +1,7 @@
 # ARBO: Rapid spatial clustering and enriched metabolite discovery for MSI data
 
+[![DOI](https://zenodo.org/badge/1178603178.svg)](https://doi.org/10.5281/zenodo.19622206)
+
 `ARBO` provides utilities for preprocessing, visualization, and spatial
 clustering of metabolomics mass spectrometry imaging (MSI) data, with support
 for Python-based UMAP embedding through `reticulate`, multiple clustering
