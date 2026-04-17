@@ -1,7 +1,7 @@
 Package: ARBO
 Type: Package
 Title: Rapid Spatial Clustering and Enriched Metabolite Discovery for MSI Data
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: 
     person("Xinyin Deng", email = "2386180950@qq.com", role = c("aut", "cre"))
 Description: Tools for preprocessing, visualization, spatial clustering,

@@ -1,3 +1,9 @@
+# ARBO 1.0.1
+
+## Release highlights
+- Add image origin and usage note of artificially constructed MSI data `Miss Teng`.
+
+
 # ARBO 1.0.0
 
 ## Release highlights

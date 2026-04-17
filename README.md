@@ -15,6 +15,7 @@ The package currently supports two UMAP input strategies in the main workflow:
 This allows users to choose either a direct feature-scaled workflow or an
 L2-normalized PCA-based workflow before clustering.
 
+
 ## Installation
 
 If installation fails due to missing `Cardinal`, install `Cardinal` first
@@ -24,7 +25,6 @@ using Bioconductor, then install `ARBO` from GitHub.
 # install.packages("remotes")
 remotes::install_github("DengXinyin/ARBO")
 ```
-
 
 
 ## R dependencies
@@ -66,6 +66,7 @@ A tested conda environment is:
 conda create -n dxy_python9 python=3.9 -y
 conda activate dxy_python9
 conda install -c conda-forge numpy=1.24.4 umap-learn=0.5.7 -y
+which python
 ```
 
 You can verify the installed versions with:
@@ -182,6 +183,14 @@ Python-based UMAP embedding, clustering, visualization, and enriched metabolite 
 - `image2ggplot()` – reconstruct `Cardinal::image()` output with `ggplot2`
 - `msi_img_overlay()` – overlay multiple MSI images with internal legend handling
 
+
+## Scalability
+
+To assess implementation-level scalability, we constructed an MSI-like dataset (**`Miss_Teng`**; approximately **`1,000 features × 1.57 million pixels`**). In preliminary tests, ARBO was able to process this dataset successfully, suggesting potential applicability to larger MSI analyses.
+
+For transparency and reproducibility, the dataset is publicly available at: https://github.com/DengXinyin/MSI-data.
+
+This dataset is provided as a scalability-oriented test case rather than a biological benchmark dataset.
 
 ## Relationship to Cardinal
 `ARBO` is an extension package for workflows based on `Cardinal` MSI objects.
